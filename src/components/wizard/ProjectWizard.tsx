@@ -118,16 +118,35 @@ function StoryInput({ onContinue }: StoryInputProps) {
             PDF or Word files that contain images (e.g. scans or screenshots) can't be interpreted.
             Please use a text-based version instead.
           </div>
-          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border p-12">
+          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border p-12 relative hover:bg-muted/50 transition-colors">
+            <input
+              type="file"
+              accept=".pdf,.txt,.md,.fountain"
+              className="absolute inset-0 cursor-pointer opacity-0"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  try {
+                    const { parseFile } = await import('@/lib/fileParsing');
+                    toast.loading("Parsing file...");
+                    const text = await parseFile(file);
+                    setStoryInput(text);
+                    toast.dismiss();
+                    toast.success("File parsed successfully!");
+                    setShowUploadModal(false);
+                  } catch (err: any) {
+                    toast.dismiss();
+                    toast.error(err.message || "Failed to parse file");
+                  }
+                }
+              }}
+            />
             <Upload className="mb-4 h-8 w-8 text-muted-foreground" />
             <p className="font-medium text-foreground">Click to upload or drag and drop</p>
-            <p className="text-sm text-muted-foreground">.pdf, .docx, .txt or .fdx, .fountain</p>
+            <p className="text-sm text-muted-foreground">.pdf, .txt, .md, .fountain</p>
           </div>
           <div className="flex justify-end">
-            <Button className="gap-2 bg-primary text-primary-foreground">
-              Continue
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+            <Button variant="ghost" onClick={() => setShowUploadModal(false)}>Cancel</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -221,26 +240,26 @@ function Generating({ projectId, onComplete, onError }: GeneratingProps) {
     }
 
     clearGenerationProgress();
-    
+
     const runGeneration = async () => {
       try {
         // Step 1
         addGenerationProgress('Reading your story idea...');
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         // Step 2
         addGenerationProgress('Aligning your idea with the genre...');
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         // Step 3 - Call parse-script API
         addGenerationProgress('Identifying characters in your story...');
-        
+
         const result = await parseScript(projectId, storyInput, selectedGenre || undefined);
-        
+
         // Step 4
         addGenerationProgress('Creating scene breakdown...');
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         if (result.success) {
           toast.success(`Created ${result.scenes_created} scenes and ${result.characters_created} characters`);
           onComplete();
@@ -309,7 +328,7 @@ function Generating({ projectId, onComplete, onError }: GeneratingProps) {
             {steps.map((step, index) => {
               const isCompleted = generationProgress.includes(step);
               const isCurrent = generationProgress.length === index;
-              
+
               return (
                 <div key={step} className="flex items-center gap-3">
                   <div
@@ -318,8 +337,8 @@ function Generating({ projectId, onComplete, onError }: GeneratingProps) {
                       isCompleted
                         ? 'border-primary bg-primary'
                         : isCurrent
-                        ? 'border-primary'
-                        : 'border-border'
+                          ? 'border-primary'
+                          : 'border-border'
                     )}
                   >
                     {isCompleted && <Check className="h-3 w-3 text-primary-foreground" />}
@@ -358,13 +377,13 @@ interface ProjectWizardProps {
 }
 
 export function ProjectWizard({ onComplete }: ProjectWizardProps) {
-  const { 
-    wizardStep, 
-    setWizardStep, 
-    storyInput, 
+  const {
+    wizardStep,
+    setWizardStep,
+    storyInput,
     selectedGenre,
   } = useStoryboardStore();
-  
+
   const [projectId, setProjectId] = useState<string | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
 
@@ -412,8 +431,8 @@ export function ProjectWizard({ onComplete }: ProjectWizardProps) {
         </div>
       )}
       {wizardStep === 'generating' && !isCreatingProject && (
-        <Generating 
-          projectId={projectId} 
+        <Generating
+          projectId={projectId}
           onComplete={handleGenerationComplete}
           onError={handleGenerationError}
         />
