@@ -301,7 +301,7 @@ export async function deleteCharacter(characterId: string) {
 
 // ============= AI FUNCTIONS (MOCKED) =============
 
-export async function parseScript(projectId: string, scriptText: string, genre?: string, modelName: string = "gemini-1.5-flash") {
+export async function parseScript(projectId: string, scriptText: string, genre?: string, modelName: string = "gemini-pro") {
   try {
     const prompt = `
       Analyze the following story concept or script and break it down into scenes and characters.
@@ -332,7 +332,18 @@ export async function parseScript(projectId: string, scriptText: string, genre?:
     `;
 
     const model = getModel(modelName);
-    const result = await model.generateContent(prompt);
+    let result;
+    try {
+      result = await model.generateContent(prompt);
+    } catch (e: any) {
+      if (modelName !== 'gemini-pro' && (e.message?.includes('404') || e.message?.includes('not found'))) {
+        console.warn(`Model ${modelName} failed, retrying with gemini-pro`);
+        const fallbackModel = getModel('gemini-pro');
+        result = await fallbackModel.generateContent(prompt);
+      } else {
+        throw e;
+      }
+    }
     const response = await result.response;
     const text = response.text();
 
@@ -448,7 +459,7 @@ export async function generateShotImage(
   characters?: { name: string; description: string }[],
   style?: string,
   aspectRatio?: string,
-  modelName: string = "gemini-1.5-flash"
+  modelName: string = "gemini-pro"
 ) {
   await delay(1000);
   // Return a placeholder image
@@ -467,7 +478,18 @@ export async function generateShotImage(
     `;
 
     const model = getModel(modelName);
-    const result = await model.generateContent(prompt);
+    let result;
+    try {
+      result = await model.generateContent(prompt);
+    } catch (e: any) {
+      if (modelName !== 'gemini-pro' && (e.message?.includes('404') || e.message?.includes('not found'))) {
+        console.warn(`Model ${modelName} failed, retrying with gemini-pro`);
+        const fallbackModel = getModel('gemini-pro');
+        result = await fallbackModel.generateContent(prompt);
+      } else {
+        throw e;
+      }
+    }
     const response = await result.response;
     let svgContent = response.text();
 
