@@ -123,7 +123,10 @@ export default function ProjectEditor() {
     }
   };
 
-  const handleWizardComplete = (projectId: string) => {
+  const handleWizardComplete = async (projectId: string) => {
+    // Load the project data immediately after wizard completes
+    await loadProjectData(projectId);
+    // Then navigate (replace: true prevents back button issues)
     navigate(`/project/${projectId}`, { replace: true });
   };
 
@@ -135,7 +138,8 @@ export default function ProjectEditor() {
     );
   }
 
-  // Show wizard for new projects
+  // Show wizard for new projects ONLY if we haven't completed generation yet
+  // Once wizardStep is 'breakdown', we should show the main editor
   if (isNewProject && wizardStep !== 'breakdown') {
     return <ProjectWizard onComplete={handleWizardComplete} />;
   }

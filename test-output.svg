@@ -1,0 +1,36 @@
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .thick-line {
+        stroke: black;
+        stroke-width: 4;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    </style>
+  </defs>
+
+  <!-- Head shape -->
+  <ellipse cx="200" cy="150" rx="100" ry="120" class="thick-line"/>
+
+  <!-- Eyes -->
+  <circle cx="160" cy="130" r="10" class="thick-line"/>
+  <circle cx="240" cy="130" r="10" class="thick-line"/>
+
+  <!-- Concerned Eyebrows: Arched down towards the center -->
+  <path d="M140 115 Q160 100 180 115" class="thick-line"/>
+  <path d="M220 115 Q240 100 260 115" class="thick-line"/>
+
+  <!-- Nose: Simple vertical line with a small horizontal base for the tip -->
+  <path d="M200 150 V170 M195 170 H205" class="thick-line"/>
+
+  <!-- Concerned Mouth: Downturned arc -->
+  <path d="M170 200 Q200 215 230 200" class="thick-line"/>
+
+  <!-- Minimal neck/shoulders for close-up -->
+  <path d="M170 260 C180 240 220 240 230 260" class="thick-line"/>
+  <path d="M140 280 L160 260" class="thick-line"/>
+  <path d="M260 280 L240 260" class="thick-line"/>
+
+</svg>

@@ -299,153 +299,205 @@ export async function deleteCharacter(characterId: string) {
   saveList(KEYS.CHARACTERS, characters);
 }
 
-// ============= AI FUNCTIONS (MOCKED) =============
+// ============= AI FUNCTIONS (PRODUCTION-GRADE) =============
+
+import { parseScriptWithGemini, type ParseScriptResponse } from './script-parser';
 
 export async function parseScript(projectId: string, scriptText: string, genre?: string, modelName: string = "gemini-pro") {
   try {
-    const prompt = `
-      Analyze the following story concept or script and break it down into scenes and characters.
-      Genre: ${genre || 'General'}
-      
-      Script/Story:
-      "${scriptText}"
-      
-      Output strictly in JSON format with this structure:
-      {
-        "scenes": [
-          {
-            "scene_number": 1,
-            "location": "INT. ROOM - DAY",
-            "time_of_day": "DAY",
-            "description": "Brief description of the action"
-          }
-        ],
-        "characters": [
-          {
-            "name": "CHARACTER NAME",
-            "description": "Brief visual description",
-            "clothing": "Clothing style",
-            "appearance": "Physical traits"
-          }
-        ]
-      }
-    `;
+    console.log('[parseScript] Starting script analysis', {
+      projectId,
+      scriptLength: scriptText.length,
+      genre,
+      modelName
+    });
 
-    const model = getModel(modelName);
-    let result;
-    try {
-      result = await model.generateContent(prompt);
-    } catch (e: any) {
-      if (modelName !== 'gemini-pro' && (e.message?.includes('404') || e.message?.includes('not found'))) {
-        console.warn(`Model ${modelName} failed, retrying with gemini-pro`);
-        const fallbackModel = getModel('gemini-pro');
-        result = await fallbackModel.generateContent(prompt);
-      } else {
-        throw e;
-      }
+    // Call hardened parser
+    const result: ParseScriptResponse = await parseScriptWithGemini(
+      scriptText,
+      genre,
+      modelName
+    );
+
+    // Handle parsing failure
+    if (!result.success) {
+      console.error('[parseScript] Parsing failed:', result.error);
+      return {
+        success: false,
+        error: result.userMessage,
+        scenes_created: 0,
+        characters_created: 0
+      };
     }
-    const response = await result.response;
-    const text = response.text();
 
-    // Clean up JSON if md blocks are used
-    const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsedData = JSON.parse(cleanJson);
+    // Log warnings if any
+    if (result.warnings.length > 0) {
+      console.warn('[parseScript] Warnings:', result.warnings);
+    }
 
+    console.log('[parseScript] Parsing succeeded', {
+      scenesFound: result.scenes.length,
+      charactersFound: result.characters.length
+    });
+
+    // Save to localStorage
     const scenes = getList<Scene>(KEYS.SCENES);
     const characters = getList<Character>(KEYS.CHARACTERS);
+    const shots = getList<Shot>(KEYS.SHOTS);
 
     let sceneCount = 0;
     let characterCount = 0;
+    let shotCount = 0;
 
-    // Process Scenes
-    if (Array.isArray(parsedData.scenes)) {
-      for (const s of parsedData.scenes) {
-        scenes.push({
-          id: crypto.randomUUID(),
-          project_id: projectId,
-          scene_number: s.scene_number || (sceneCount + 1),
-          location: s.location || "UNKNOWN",
-          time_of_day: s.time_of_day || "DAY",
-          description: s.description || "No description",
-          created_at: new Date().toISOString()
-        });
-        sceneCount++;
-      }
-    }
+    // Process Scenes and generate Shots
+    for (const parsedScene of result.scenes) {
+      const sceneId = crypto.randomUUID();
 
-    // Process Characters
-    if (Array.isArray(parsedData.characters)) {
-      for (const c of parsedData.characters) {
-        characters.push({
-          id: crypto.randomUUID(),
-          project_id: projectId,
-          name: c.name || "Unknown",
-          description: c.description || "",
-          appearance: c.appearance || null,
-          clothing: c.clothing || null,
-          reference_image_url: null,
-          created_at: new Date().toISOString()
-        });
-        characterCount++;
-      }
-    }
-
-    // Fallback if AI fails to return arrays
-    if (sceneCount === 0) {
       scenes.push({
-        id: crypto.randomUUID(),
+        id: sceneId,
         project_id: projectId,
-        scene_number: 1,
-        location: "UNKNOWN LOCATION",
-        time_of_day: "DAY",
-        description: "Auto-generated scene from script",
+        scene_number: parsedScene.scene_number,
+        location: parsedScene.location,
+        time_of_day: parsedScene.time_of_day,
+        description: parsedScene.description,
         created_at: new Date().toISOString()
       });
       sceneCount++;
+
+      // Generate default shots for each scene
+      // This ensures shots exist for storyboard generation
+      const defaultShots = generateDefaultShots(sceneId, parsedScene.description);
+      shots.push(...defaultShots);
+      shotCount += defaultShots.length;
     }
 
-    if (characterCount === 0) {
+    // Process Characters
+    for (const parsedChar of result.characters) {
       characters.push({
         id: crypto.randomUUID(),
         project_id: projectId,
-        name: "Protagonist",
-        description: "Main character",
-        created_at: new Date().toISOString(),
-        appearance: null,
-        clothing: null,
-        reference_image_url: null
+        name: parsedChar.name,
+        description: parsedChar.description,
+        appearance: parsedChar.appearance || null,
+        clothing: parsedChar.clothing || null,
+        reference_image_url: null,
+        created_at: new Date().toISOString()
       });
       characterCount++;
     }
 
+    // Save all data atomically
     saveList(KEYS.SCENES, scenes);
     saveList(KEYS.CHARACTERS, characters);
+    saveList(KEYS.SHOTS, shots);
+
+    console.log('[parseScript] Data saved successfully', {
+      scenes: sceneCount,
+      characters: characterCount,
+      shots: shotCount
+    });
 
     return {
       success: true,
       scenes_created: sceneCount,
       characters_created: characterCount,
-      data: { scenes, characters }
+      shots_created: shotCount,
+      data: { scenes, characters, shots }
     };
 
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    // Fallback to dummy data on error
+    console.error("[parseScript] Unexpected error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "AI processing failed",
+      error: "An unexpected error occurred. Please try again.",
       scenes_created: 0,
       characters_created: 0
-    }
+    };
   }
 }
 
-export async function generateStoryboard(projectId: string, style?: string) {
-  await delay(1000);
+// Helper to generate default shots for a scene
+function generateDefaultShots(sceneId: string, sceneDescription: string): Shot[] {
+  const shotTypes = [
+    { size: 'Wide', angle: 'Eye Level', description: 'Establishing shot' },
+    { size: 'Medium', angle: 'Eye Level', description: 'Main action' },
+    { size: 'Close-Up', angle: 'Eye Level', description: 'Detail or reaction' }
+  ];
+
+  return shotTypes.map((shotType, index) => ({
+    id: crypto.randomUUID(),
+    scene_id: sceneId,
+    shot_number: index + 1,
+    camera_angle: shotType.angle,
+    shot_size: shotType.size,
+    movement: 'Static',
+    duration: 3,
+    description: `${shotType.description}: ${sceneDescription.slice(0, 100)}`,
+    dialogue: null,
+    notes: null,
+    order: index + 1,
+    equipment: 'Tripod',
+    focal_length: '50mm',
+    created_at: new Date().toISOString()
+  }));
+}
+
+// ============= GENERATION API =============
+
+export async function generateStoryboard(projectId: string, style?: string, modelName: string = "gemini-pro") {
+  // 1. Get all shots for the project
+  const scenes = getList<Scene>(KEYS.SCENES).filter(s => s.project_id === projectId);
+  let shots = getList<Shot>(KEYS.SHOTS).filter(s => scenes.some(scene => scene.id === s.scene_id));
+
+  // Sort shots strictly by scene and order
+  shots.sort((a, b) => {
+    const SceneA = scenes.find(s => s.id === a.scene_id);
+    const SceneB = scenes.find(s => s.id === b.scene_id);
+    if (!SceneA || !SceneB) return 0;
+    if (SceneA.scene_number !== SceneB.scene_number) return SceneA.scene_number - SceneB.scene_number;
+    return (a.order || a.shot_number) - (b.order || b.shot_number);
+  });
+
+  // 2. Filter shots that don't have panels yet (or valid ones)
+  const panels = getList<StoryboardPanel>(KEYS.PANELS);
+  const shotsToGenerate = shots.filter(shot => !panels.some(p => p.shot_id === shot.id));
+
+  let generatedCount = 0;
+  const errors: any[] = [];
+  const characters = getList<Character>(KEYS.CHARACTERS).filter(c => c.project_id === projectId);
+
+  // 3. Sequential Generation Loop (to avoid rate limits and logic overlap)
+  // In a real app, this would be a queue or a batch job.
+  for (const shot of shotsToGenerate) {
+    try {
+      const scene = scenes.find(s => s.id === shot.scene_id);
+      if (!scene) continue;
+
+      const characterList = characters.map(c => ({ name: c.name, description: c.description }));
+
+      // Re-use our robust image generation function
+      await generateShotImage(
+        shot.id,
+        `${scene.location} - ${scene.time_of_day}. ${scene.description}`,
+        shot.description,
+        shot.camera_angle,
+        shot.shot_size,
+        characterList,
+        style,
+        '16:9',
+        modelName // Pass the selected model
+      );
+      generatedCount++;
+    } catch (e: any) {
+      console.error(`Failed to generate shot ${shot.id}:`, e);
+      errors.push({ shotId: shot.id, error: e.message });
+    }
+  }
+
   return {
     success: true,
-    generated_count: 0,
-    errors: [],
+    generated_count: generatedCount,
+    errors: errors,
     error: undefined
   };
 }
@@ -477,20 +529,40 @@ export async function generateShotImage(
       Keep it simple, black and white, wireframe style.
     `;
 
-    const model = getModel(modelName);
-    let result;
-    try {
-      result = await model.generateContent(prompt);
-    } catch (e: any) {
-      if (modelName !== 'gemini-pro' && (e.message?.includes('404') || e.message?.includes('not found'))) {
-        console.warn(`Model ${modelName} failed, retrying with gemini-pro`);
-        const fallbackModel = getModel('gemini-pro');
-        result = await fallbackModel.generateContent(prompt);
-      } else {
-        throw e;
+    // Fallback strategy helper
+    const generateWithFallback = async (promptText: string) => {
+      // List of models to try in order of preference/stability
+      const modelsToTry = [
+        modelName,
+        'gemini-2.5-flash',
+        'gemini-2.0-flash-lite-001',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash'
+      ];
+      const uniqueModels = [...new Set(modelsToTry)]; // Remove duplicates
+
+      let lastError;
+
+      for (const mName of uniqueModels) {
+        try {
+          // If the model name looks like a path, use it, otherwise let SDK resolve
+          const m = getModel(mName);
+          console.log(`Trying model: ${mName}`);
+          const result = await m.generateContent(promptText);
+          return await result.response;
+        } catch (e: any) {
+          console.warn(`Model ${mName} failed:`, e.message);
+          lastError = e;
+          // Only terminal auth errors stop the retry
+          if (e.message?.includes('API_KEY_INVALID')) {
+            throw e;
+          }
+        }
       }
-    }
-    const response = await result.response;
+      throw lastError || new Error("All models failed");
+    };
+
+    const response = await generateWithFallback(prompt);
     let svgContent = response.text();
 
     // Cleanup

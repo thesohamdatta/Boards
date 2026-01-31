@@ -31,46 +31,73 @@ export function StoryboardGrid() {
       return;
     }
 
+    // Identify shots that need generation (missing images)
+    // Note: We filter locally based on current view state
+    const shotsToGenerate = shots.filter(s => !s.imageUrl || s.imageUrl.length < 50); // Simple check for missing/placeholder
+
+    if (shotsToGenerate.length === 0) {
+      toast.info("All shots already have images. Use 'Retry' on specific shots to regenerate.");
+      return;
+    }
+
     setIsGenerating(true);
+    setGeneratingShots(new Set(shotsToGenerate.map(s => s.id)));
+    toast.info(`Starting generation for ${shotsToGenerate.length} shots...`);
+
     try {
-      const result = await generateStoryboard(currentProject.id);
-      if (result.success) {
-        toast.success(`Generated ${result.generated_count} panels`);
+      let completedCount = 0;
 
-        // Reload shots to get new images
-        const scenesData = await getScenes(currentProject.id);
-        if (scenesData) {
-          const allShots = scenesData.flatMap(scene =>
-            (scene.shots || []).map(shot => ({
-              id: shot.id,
-              sceneId: shot.scene_id,
-              shotNumber: shot.shot_number,
-              description: shot.description,
-              cameraAngle: shot.camera_angle,
-              shotSize: shot.shot_size,
-              movement: shot.movement || 'Static',
-              equipment: shot.equipment || 'Tripod',
-              duration: shot.duration,
-              focalLength: shot.focal_length || '50mm',
-              aspectRatio: '16:9',
-              imageUrl: shot.storyboard_panels?.[0]?.image_url,
-              promptUsed: shot.storyboard_panels?.[0]?.prompt_used,
-            }))
+      for (const shot of shotsToGenerate) {
+        // Check if we should stop (e.g. component unmount? - hard to check in loop without ref, but okay for now)
+
+        const scene = getSceneForShot(shot.sceneId);
+        if (!scene) continue;
+
+        const characterList = characters.map(c => ({ name: c.name, description: c.description }));
+
+        try {
+          const result = await generateShotImage(
+            shot.id,
+            `${scene.location} - ${scene.lighting || 'DAY'}. ${scene.description}`,
+            shot.description,
+            shot.cameraAngle,
+            shot.shotSize,
+            characterList,
+            settings.imageStyle,
+            '16:9',
+            settings.aiModel
           );
-          setShots(allShots);
-        }
 
-        if (result.errors?.length > 0) {
-          toast.warning(`${result.errors.length} shots failed to generate`);
+          if (result.success) {
+            // Update state IMMEDIATELY for this single shot
+            setShots(prev => prev.map(s => s.id === shot.id ? {
+              ...s,
+              imageUrl: result.panel.image_url,
+              promptUsed: result.panel.prompt_used
+            } : s));
+
+            completedCount++;
+          }
+        } catch (err) {
+          console.error(`Error generating shot ${shot.id}`, err);
+        } finally {
+          // Remove from loading set
+          setGeneratingShots(prev => {
+            const next = new Set(prev);
+            next.delete(shot.id);
+            return next;
+          });
         }
-      } else {
-        throw new Error(result.error);
       }
+
+      toast.success(`Generation complete. ${completedCount} images created.`);
+
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate storyboard';
       toast.error(message);
     } finally {
       setIsGenerating(false);
+      setGeneratingShots(new Set()); // Ensure clear
     }
   };
 

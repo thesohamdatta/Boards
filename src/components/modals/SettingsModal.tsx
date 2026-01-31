@@ -204,9 +204,11 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="gemini-pro">Gemini 1.0 Pro (Stable)</SelectItem>
-                                    <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash (Fast)</SelectItem>
-                                    <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro (Quality)</SelectItem>
+                                    <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash (Newest & Fast)</SelectItem>
+                                    <SelectItem value="gemini-2.0-flash-lite-001">Gemini 2.0 Flash Lite (Nano-class)</SelectItem>
+                                    <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash (Stable)</SelectItem>
+                                    <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash (Standard)</SelectItem>
+                                    <SelectItem value="gemini-pro">Gemini 1.0 Pro (Legacy)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
