@@ -32,6 +32,18 @@
 
 ---
 
+## 📸 Screenshot
+
+<div align="center">
+
+![Boards App Screenshot](./assets/app_screenshot.png)
+
+*Professional storyboard interface with AI-generated frames*
+
+</div>
+
+---
+
 ## 🌟 Features
 
 <div align="center">
