@@ -372,6 +372,135 @@ function Generating({ projectId, onComplete, onError }: GeneratingProps) {
   );
 }
 
+interface StyleSelectionProps {
+  onContinue: () => void;
+}
+
+const ART_STYLES = [
+  { id: 'comic', name: 'Comic', description: 'Action-packed with bold outlines.', prompt: 'Graphic novel style, bold line art, vibrant comic book colors.' },
+  { id: 'detailed', name: 'Cinematic', description: 'Detailed and realistic lighting.', prompt: 'Cinematic film still, photorealistic, dramatic lighting, 8k resolution.' },
+  { id: 'sketch', name: 'Soft Pencil', description: 'Hand-drawn charcoal aesthetic.', prompt: 'Soft pencil sketch, charcoal texture, hand-drawn artistic style.' },
+  { id: 'anime', name: 'Dark Anime', description: 'Stylized modern Japanese animation.', prompt: 'Dark anime style, high contrast, clean digital line art.' },
+  { id: 'watercolor', name: 'Watercolor', description: 'Fluid and organic painted look.', prompt: 'Watercolor painting, soft edges, bleeding colors, artistic paper texture.' },
+  { id: 'noir', name: 'Noir', description: 'High contrast black and white.', prompt: 'Film noir style, monochrome, high contrast, moody shadows.' },
+  { id: 'vector', name: 'Flat Vector', description: 'Clean, modern 2D illustration.', prompt: 'Flat vector illustration, minimalist, clean lines, solid colors.' },
+  { id: 'stick', name: 'Stick Figure', description: 'Quick and simple rough boards.', prompt: 'Simple stick figure drawing, whiteboard sketch, minimal detail.' },
+];
+
+function StyleSelection({ onContinue }: StyleSelectionProps) {
+  const { selectedStyle, setSelectedStyle, selectedAspectRatio, setSelectedAspectRatio } = useStoryboardStore();
+
+  return (
+    <div className="flex flex-1 flex-col overflow-y-auto pr-2 custom-scrollbar">
+      {/* Steps */}
+      <div className="mb-8 flex justify-center">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <span className="rounded-full border border-border px-2.5 py-0.5 text-sm">1</span>
+            <span className="text-sm">Story Idea</span>
+          </div>
+          <div className="h-px w-12 bg-border" />
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <span className="rounded-full border border-border px-2.5 py-0.5 text-sm">2</span>
+            <span className="text-sm">Breakdown</span>
+          </div>
+          <div className="h-px w-12 bg-border" />
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-primary px-2.5 py-0.5 text-sm font-medium text-primary-foreground">3</span>
+            <span className="text-sm font-medium text-foreground">Storyboard</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Title */}
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-black tracking-tight text-foreground uppercase mb-2">Choose Your Aspect Ratio and Art Style</h1>
+        <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+          Set the tone of your storyboard with one of the latest styles or upload your own. No worries, you can change it later anyways.
+        </p>
+      </div>
+
+      <div className="mx-auto w-full max-w-5xl space-y-12 pb-12">
+        {/* Aspect Ratio */}
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Select Your Aspect Ratio</h3>
+          <div className="grid grid-cols-4 gap-4">
+            {[
+              { id: '16:9', label: '16:9 (Cinematic)', sub: 'Default' },
+              { id: '4:3', label: '4:3 (Classic)', sub: 'Vintage' },
+              { id: '21:9', label: '21:9 (Ultrawide)', sub: 'Epic' },
+              { id: '1:1', label: '1:1 (Square)', sub: 'Social' },
+            ].map((ratio) => (
+              <button
+                key={ratio.id}
+                onClick={() => setSelectedAspectRatio(ratio.id)}
+                className={cn(
+                  "flex flex-col items-start p-4 rounded-2xl border transition-all text-left",
+                  selectedAspectRatio === ratio.id
+                    ? "border-primary bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]"
+                    : "border-border/50 bg-card hover:border-primary/50"
+                )}
+              >
+                <span className="text-sm font-black text-foreground">{ratio.id}</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase mt-1">{ratio.sub}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Style Grid */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Select Your Style</h3>
+            <Button
+              onClick={onContinue}
+              disabled={!selectedStyle}
+              className="px-8 h-12 rounded-2xl bg-foreground text-background font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl"
+            >
+              Generate Your Storyboard
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-4 gap-4">
+            {ART_STYLES.map((style) => (
+              <button
+                key={style.id}
+                onClick={() => setSelectedStyle(style.id)}
+                className={cn(
+                  "group relative aspect-[4/3] rounded-2xl border overflow-hidden transition-all",
+                  selectedStyle === style.id
+                    ? "border-primary ring-2 ring-primary ring-offset-4 ring-offset-background"
+                    : "border-border/50 bg-card hover:border-primary/50"
+                )}
+              >
+                {/* Style Preview Placeholder */}
+                <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                  <div className="w-full h-full bg-gradient-to-br from-muted-foreground/10 to-muted-foreground/20 group-hover:scale-110 transition-transform duration-500" />
+                  {/* In a real app, these would be the generated images */}
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                </div>
+
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                  <p className="text-xs font-black text-white uppercase tracking-wider">{style.name}</p>
+                </div>
+              </button>
+            ))}
+            <button className="aspect-[4/3] rounded-2xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-2 hover:bg-muted/30 transition-all group">
+              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:scale-110 transition-transform">
+                <Plus className="h-5 w-5" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Add Your Own Style</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+import { Plus } from 'lucide-react';
+
 interface ProjectWizardProps {
   onComplete: (projectId: string) => void;
 }
@@ -382,6 +511,9 @@ export function ProjectWizard({ onComplete }: ProjectWizardProps) {
     setWizardStep,
     storyInput,
     selectedGenre,
+    selectedStyle,
+    selectedAspectRatio,
+    updateSettings
   } = useStoryboardStore();
 
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -394,7 +526,6 @@ export function ProjectWizard({ onComplete }: ProjectWizardProps) {
   const handleGenreComplete = async () => {
     setIsCreatingProject(true);
     try {
-      // Create project in database
       const title = storyInput.slice(0, 50).split('\n')[0] || 'Untitled Project';
       const project = await createProject(title, selectedGenre || undefined, undefined, storyInput);
       setProjectId(project.id);
@@ -409,6 +540,17 @@ export function ProjectWizard({ onComplete }: ProjectWizardProps) {
 
   const handleGenerationComplete = () => {
     if (projectId) {
+      setWizardStep('style');
+    }
+  };
+
+  const handleStyleComplete = () => {
+    if (projectId) {
+      // Apply global style to settings for future generation
+      updateSettings({
+        imageStyle: selectedStyle as any,
+        defaultAspectRatio: selectedAspectRatio
+      });
       setWizardStep('breakdown');
       onComplete(projectId);
     }
@@ -416,27 +558,31 @@ export function ProjectWizard({ onComplete }: ProjectWizardProps) {
 
   const handleGenerationError = (error: string) => {
     console.error('Generation error:', error);
-    // Stay on the generating page to show error
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background p-8">
-      {wizardStep === 'story' && <StoryInput onContinue={handleStoryComplete} />}
-      {wizardStep === 'genre' && (
-        <GenreSelection onContinue={handleGenreComplete} />
-      )}
-      {isCreatingProject && (
-        <div className="flex flex-1 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )}
-      {wizardStep === 'generating' && !isCreatingProject && (
-        <Generating
-          projectId={projectId}
-          onComplete={handleGenerationComplete}
-          onError={handleGenerationError}
-        />
-      )}
+    <div className="flex h-screen w-screen overflow-hidden bg-background">
+      <div className="flex-1 flex flex-col px-12 py-8 overflow-hidden">
+        {wizardStep === 'story' && <StoryInput onContinue={handleStoryComplete} />}
+        {wizardStep === 'genre' && (
+          <GenreSelection onContinue={handleGenreComplete} />
+        )}
+        {isCreatingProject && (
+          <div className="flex flex-1 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+        {wizardStep === 'generating' && !isCreatingProject && (
+          <Generating
+            projectId={projectId}
+            onComplete={handleGenerationComplete}
+            onError={handleGenerationError}
+          />
+        )}
+        {wizardStep === 'style' && (
+          <StyleSelection onContinue={handleStyleComplete} />
+        )}
+      </div>
     </div>
   );
 }

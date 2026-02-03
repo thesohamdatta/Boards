@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Grid3X3, Film, List, Archive, Settings, HelpCircle, LogOut, Search, Plus, User } from 'lucide-react';
+import { FileText, Grid3X3, Film, List, Archive, Settings, HelpCircle, LogOut, Search, Plus, User, LayoutGrid, Palette } from 'lucide-react';
 import { useStoryboardStore } from '@/stores/storyboardStore';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ onNewProject }: AppSidebarProps) {
-  const { projects, currentProject, activeView, setActiveView } = useStoryboardStore();
+  const { projects, currentProject, activeView, setActiveView, settings, updateSettings } = useStoryboardStore();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -117,6 +117,31 @@ export function AppSidebar({ onNewProject }: AppSidebarProps) {
               ))}
             </div>
           )}
+        </div>
+        {/* Cinematic Orchestration: Visual Aesthetics */}
+        <div className="px-6 mb-6">
+          <p className="px-4 mb-3 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Cinematic Style</p>
+          <div className="p-4 rounded-2xl bg-muted/20 border border-border/10 backdrop-blur-md">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                <Palette className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black text-foreground uppercase tracking-tight leading-none">Global Aesthetic</span>
+                <span className="text-[8px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-0.5">Vibe Consistency</span>
+              </div>
+            </div>
+            <select
+              value={settings.imageStyle}
+              onChange={(e) => updateSettings({ imageStyle: e.target.value as any })}
+              className="w-full h-10 px-4 rounded-xl bg-background/50 border border-border/20 text-[10px] font-black text-foreground uppercase tracking-widest outline-none focus:border-primary/50 transition-all cursor-pointer"
+            >
+              <option value="sketch" className="bg-background">Minimal Sketch</option>
+              <option value="wireframe" className="bg-background">Tech Wireframe</option>
+              <option value="detailed" className="bg-background">Cinematic Detailed</option>
+              <option value="comic" className="bg-background">Noir Comic</option>
+            </select>
+          </div>
         </div>
 
         {/* Admin: Production Controls */}

@@ -23,12 +23,15 @@ export const Timeline: React.FC = () => {
         selectedShotId,
         setSelectedShotId,
         settings,
-        updateSettings
+        updateSettings,
+        isPlaybackPlaying,
+        setIsPlaybackPlaying,
+        currentTime,
+        setCurrentTime,
+        playbackSpeed
     } = useStoryboardStore();
 
-    const [isPlaying, setIsPlaying] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(1);
-    const [currentTime, setCurrentTime] = useState(0);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     const totalDuration = useMemo(() =>
@@ -49,28 +52,9 @@ export const Timeline: React.FC = () => {
         }
     }, [selectedShotId, shots]);
 
-    // Playback logic
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-
-        if (isPlaying) {
-            interval = setInterval(() => {
-                setCurrentTime(prev => {
-                    if (prev >= totalDuration) {
-                        setIsPlaying(false);
-                        return 0;
-                    }
-                    return prev + 0.1;
-                });
-            }, 100);
-        }
-
-        return () => clearInterval(interval);
-    }, [isPlaying, totalDuration]);
-
     // Sync current time to selected shot highlighting
     useEffect(() => {
-        if (isPlaying) {
+        if (isPlaybackPlaying) {
             let accumulatedTime = 0;
             for (const shot of shots) {
                 if (currentTime >= accumulatedTime && currentTime < accumulatedTime + shot.duration) {
@@ -82,7 +66,7 @@ export const Timeline: React.FC = () => {
                 accumulatedTime += shot.duration;
             }
         }
-    }, [currentTime, isPlaying, shots, selectedShotId, setSelectedShotId]);
+    }, [currentTime, isPlaybackPlaying, shots, selectedShotId, setSelectedShotId]);
 
     if (!settings.showTimeline) return null;
 
@@ -107,9 +91,9 @@ export const Timeline: React.FC = () => {
                         variant="ghost"
                         size="icon"
                         className="h-10 w-10 text-primary-foreground bg-primary shadow-lg shadow-primary/20 hover:scale-105 transition-all rounded-full"
-                        onClick={() => setIsPlaying(!isPlaying)}
+                        onClick={() => setIsPlaybackPlaying(!isPlaybackPlaying)}
                     >
-                        {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+                        {isPlaybackPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
                     </Button>
 
                     <Button

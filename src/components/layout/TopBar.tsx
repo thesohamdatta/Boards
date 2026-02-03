@@ -14,7 +14,7 @@ interface TopBarProps {
 }
 
 export function TopBar({ onExport, onCharacterEditor, onSettings }: TopBarProps) {
-  const { currentProject, setCurrentProject } = useStoryboardStore();
+  const { currentProject, setCurrentProject, isPlaybackPlaying } = useStoryboardStore();
   const [isEditing, setIsEditing] = useState(false);
   const [projectName, setProjectName] = useState(currentProject?.name || '');
 
@@ -23,7 +23,7 @@ export function TopBar({ onExport, onCharacterEditor, onSettings }: TopBarProps)
   const handleSaveName = async () => {
     if (projectName.trim() && projectName !== currentProject.name) {
       try {
-        await updateProject(currentProject.id, { title: projectName });
+        await updateProject(currentProject.id, { name: projectName });
         setCurrentProject({ ...currentProject, name: projectName });
         toast.success('Project name updated');
       } catch (error) {
@@ -39,14 +39,13 @@ export function TopBar({ onExport, onCharacterEditor, onSettings }: TopBarProps)
   };
 
   const handleShare = () => {
-    // Copy project URL to clipboard
     const url = window.location.href;
     navigator.clipboard.writeText(url);
     toast.success('Project link copied to clipboard');
   };
 
   return (
-    <header className="flex h-20 items-center justify-between border-b border-border/20 bg-background/50 px-8 backdrop-blur-xl z-10">
+    <header className="flex h-20 items-center justify-between border-b border-border/20 bg-background/50 px-8 backdrop-blur-xl z-20">
       <div className="flex items-center gap-6">
         {isEditing ? (
           <div className="flex items-center gap-2 bg-muted/20 p-1.5 rounded-2xl border border-border/30 shadow-inner">
@@ -92,8 +91,17 @@ export function TopBar({ onExport, onCharacterEditor, onSettings }: TopBarProps)
                 </button>
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <div className="h-1 w-8 rounded-full bg-gradient-to-r from-primary to-accent" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Active Project Architecture</span>
+                {isPlaybackPlaying ? (
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-2 w-2 rounded-full bg-destructive animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive">Cinematic Playback</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="h-1 w-8 rounded-full bg-gradient-to-r from-primary to-accent" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Active Project Architecture</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -123,7 +131,7 @@ export function TopBar({ onExport, onCharacterEditor, onSettings }: TopBarProps)
             className="h-10 gap-2.5 rounded-xl px-5 text-xs font-black uppercase tracking-widest hover:bg-background/80 hover:text-primary hover:shadow-sm transition-all"
           >
             <Share2 className="h-4 w-4" />
-            Distribute
+            Share
           </Button>
           <Button
             variant="ghost"
@@ -132,7 +140,7 @@ export function TopBar({ onExport, onCharacterEditor, onSettings }: TopBarProps)
             className="h-10 gap-2.5 rounded-xl px-5 text-xs font-black uppercase tracking-widest hover:bg-background/80 hover:text-primary hover:shadow-sm transition-all"
           >
             <Download className="h-4 w-4" />
-            Produce
+            Export
           </Button>
         </div>
 

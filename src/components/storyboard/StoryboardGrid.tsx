@@ -3,7 +3,7 @@ import { StoryboardPanel } from './StoryboardPanel';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Pencil, LayoutGrid, List, Loader2, Film, GripVertical } from 'lucide-react';
 import { useState } from 'react';
-import { generateStoryboard, generateShotImage, getScenes } from '@/lib/api';
+import { generateStoryboard, generateShotImage, getScenes, updateProject as apiUpdateProject } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
@@ -97,7 +97,8 @@ export function StoryboardGrid() {
     characters,
     setShots,
     settings,
-    reorderShots
+    reorderShots,
+    updateProject
   } = useStoryboardStore();
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -182,6 +183,13 @@ export function StoryboardGrid() {
             } : s);
             setShots(currentShots);
             completedCount++;
+
+            // Auto-update project thumbnail if first one
+            if (currentProject && !currentProject.thumbnail) {
+              const img = result.panel.image_url;
+              await apiUpdateProject(currentProject.id, { thumbnail: img });
+              updateProject(currentProject.id, { thumbnail: img });
+            }
           }
         } catch (err) {
           console.error(`Error generating shot ${shot.id}`, err);
@@ -244,6 +252,13 @@ export function StoryboardGrid() {
         );
         setShots(updatedShots);
         toast.success('Shot regenerated');
+
+        // Auto-update project thumbnail if first one
+        if (currentProject && !currentProject.thumbnail) {
+          const img = result.panel.image_url;
+          await apiUpdateProject(currentProject.id, { thumbnail: img });
+          updateProject(currentProject.id, { thumbnail: img });
+        }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to regenerate shot';

@@ -10,10 +10,11 @@ import { CharacterModal } from '@/components/storyboard/CharacterModal';
 import { SettingsModal } from '@/components/modals/SettingsModal';
 import { ExportModal } from '@/components/modals/ExportModal';
 import { Timeline } from '@/components/storyboard/Timeline';
+import { AnimaticPlayer } from '@/components/storyboard/AnimaticPlayer';
 import { ProjectWizard } from '@/components/wizard/ProjectWizard';
 import { useStoryboardStore } from '@/stores/storyboardStore';
 import { useRequireAuth } from '@/hooks/useAuth';
-import { getProject, getScenes, getCharacters, getProjectFull, getProjects } from '@/lib/api';
+import { getProject, getScenes, getCharacters, getProjectFull, getProjects, updateProject as apiUpdateProject } from '@/lib/api';
 import { toast } from 'sonner';
 
 export default function ProjectEditor() {
@@ -60,8 +61,10 @@ export default function ProjectEditor() {
       const allProjects = await getProjects();
       const transformedProjects = allProjects.map(p => ({
         id: p.id,
-        name: p.title,
+        name: p.name,
         genre: p.genre || undefined,
+        description: p.description || undefined,
+        thumbnail: p.thumbnail || undefined,
         createdAt: new Date(p.created_at),
         updatedAt: new Date(p.updated_at),
         script_text: p.script_text,
@@ -76,21 +79,25 @@ export default function ProjectEditor() {
         return;
       }
 
-      // Important: set content BEFORE current project trigger if possible, 
-      // or ensure they are consistent in the same tick.
+      // Important: set content BEFORE current project trigger if possible
       setStoryInput(project.script_text || '');
 
-      setCurrentProject({
+      const currentProj = {
         id: project.id,
-        name: project.title,
+        name: project.name,
         genre: project.genre || undefined,
+        description: project.description || undefined,
+        thumbnail: project.thumbnail || undefined,
         createdAt: new Date(project.created_at),
         updatedAt: new Date(project.updated_at),
         script_text: project.script_text,
-      });
+      };
+      setCurrentProject(currentProj);
 
       // Load scenes with shots
       const scenesData = await getScenes(projectId);
+      let firstAvailableImage = project.thumbnail || undefined;
+
       if (scenesData) {
         // Transform to store format
         const scenes = scenesData.map(s => ({
@@ -105,23 +112,40 @@ export default function ProjectEditor() {
 
         // Extract shots
         const allShots = scenesData.flatMap(scene =>
-          (scene.shots || []).map(shot => ({
-            id: shot.id,
-            sceneId: shot.scene_id,
-            shotNumber: shot.shot_number,
-            description: shot.description,
-            cameraAngle: shot.camera_angle,
-            shotSize: shot.shot_size,
-            movement: shot.movement || 'Static',
-            equipment: shot.equipment || 'Tripod',
-            duration: shot.duration,
-            focalLength: shot.focal_length || '50mm',
-            aspectRatio: '16:9',
-            imageUrl: shot.storyboard_panels?.[0]?.image_url,
-            promptUsed: shot.storyboard_panels?.[0]?.prompt_used,
-          }))
+          (scene.shots || []).map(shot => {
+            const img = shot.storyboard_panels?.[0]?.image_url;
+            if (!firstAvailableImage && img) firstAvailableImage = img;
+
+            return {
+              id: shot.id,
+              sceneId: shot.scene_id,
+              shotNumber: shot.shot_number,
+              description: shot.description,
+              cameraAngle: shot.camera_angle,
+              shotSize: shot.shot_size,
+              movement: shot.movement || 'Static',
+              equipment: shot.equipment || 'Tripod',
+              duration: shot.duration,
+              focalLength: shot.focal_length || '50mm',
+              aspectRatio: '16:9',
+              imageUrl: img,
+              promptUsed: shot.storyboard_panels?.[0]?.prompt_used,
+            };
+          })
         );
         setShots(allShots);
+      }
+
+      // If we found a thumbnail during load but it wasn't saved, update it
+      if (firstAvailableImage && !project.thumbnail) {
+        try {
+          await apiUpdateProject(projectId, { thumbnail: firstAvailableImage });
+
+          // Update store project too
+          setCurrentProject({ ...currentProj, thumbnail: firstAvailableImage });
+        } catch (e) {
+          console.error("Failed to auto-update project thumbnail:", e);
+        }
       }
 
       // Load characters
@@ -132,6 +156,7 @@ export default function ProjectEditor() {
           projectId: c.project_id,
           name: c.name,
           description: c.description,
+          appearance: c.appearance || undefined,
           imageUrl: c.reference_image_url || undefined,
         }));
         setCharacters(characters);
@@ -181,12 +206,8 @@ export default function ProjectEditor() {
           {activeView === 'storyboard' && <StoryboardGrid />}
           {activeView === 'shotlist' && <ShotList />}
           {activeView === 'story' && <StoryView />}
-          {activeView === 'animatic' && (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-muted-foreground">Animatic view coming soon...</p>
-            </div>
-          )}
-          {activeView === 'storyboard' && <Timeline />}
+          {activeView === 'animatic' && <AnimaticPlayer />}
+          {(activeView === 'storyboard' || activeView === 'animatic') && <Timeline />}
         </div>
       </div>
 

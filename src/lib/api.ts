@@ -14,8 +14,10 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export interface Project {
   id: string;
   user_id: string;
-  title: string;
+  name: string;
   genre: string | null;
+  description: string | null;
+  thumbnail: string | null;
   aspect_ratio: string | null;
   script_text: string | null;
   created_at: string;
@@ -103,14 +105,16 @@ const saveList = <T>(key: string, list: T[]) => {
 
 // ============= PROJECT API =============
 
-export async function createProject(title: string, genre?: string, aspectRatio?: string, scriptText?: string) {
+export async function createProject(name: string, genre?: string, aspectRatio?: string, scriptText?: string) {
   await delay(100);
   const projects = getList<Project>(KEYS.PROJECTS);
   const newProject: Project = {
     id: crypto.randomUUID(),
     user_id: 'local-user',
-    title: title || "Untitled",
+    name: name || "Untitled",
     genre: genre || null,
+    description: null,
+    thumbnail: null,
     aspect_ratio: aspectRatio || "16:9",
     script_text: scriptText || null,
     created_at: new Date().toISOString(),
@@ -132,7 +136,7 @@ export async function getProject(projectId: string) {
   return projects.find(p => p.id === projectId) || null;
 }
 
-export async function updateProject(projectId: string, updates: { title?: string; genre?: string; aspect_ratio?: string; script_text?: string }) {
+export async function updateProject(projectId: string, updates: { name?: string; genre?: string; description?: string; thumbnail?: string; aspect_ratio?: string; script_text?: string }) {
   await delay(50);
   const projects = getList<Project>(KEYS.PROJECTS);
   const index = projects.findIndex(p => p.id === projectId);
@@ -625,7 +629,7 @@ export async function importProject(data: any) {
   const newProject: Project = {
     ...oldProject,
     id: newProjectId,
-    title: (oldProject.title || "Untitled") + " (Imported)",
+    name: (oldProject.name || oldProject.title || "Untitled") + " (Imported)",
     user_id: 'local-user',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()

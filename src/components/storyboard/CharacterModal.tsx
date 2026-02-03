@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshCw, Upload, Plus, Trash2, Pencil } from 'lucide-react';
+import { RefreshCw, Upload, Plus, Trash2, Pencil, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { useStoryboardStore } from '@/stores/storyboardStore';
 import { Character } from '@/types/storyboard';
+import { toast } from 'sonner';
 
 interface CharacterModalProps {
   open: boolean;
@@ -20,15 +21,20 @@ interface CharacterModalProps {
 }
 
 export function CharacterModal({ open, onOpenChange }: CharacterModalProps) {
-  const { characters, addCharacter, updateCharacter, deleteCharacter, currentProject } = useStoryboardStore();
+  const { characters, addCharacter, updateCharacter, deleteCharacter, currentProject, settings } = useStoryboardStore();
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', description: '' });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', description: '', appearance: '' });
 
   const handleSelectCharacter = (char: Character) => {
     setSelectedCharacter(char);
     setIsEditing(false);
-    setEditForm({ name: char.name, description: char.description });
+    setEditForm({
+      name: char.name,
+      description: char.description,
+      appearance: char.appearance || ''
+    });
   };
 
   const handleEdit = () => {
@@ -40,6 +46,7 @@ export function CharacterModal({ open, onOpenChange }: CharacterModalProps) {
       updateCharacter(selectedCharacter.id, {
         name: editForm.name,
         description: editForm.description,
+        appearance: editForm.appearance,
       });
       setIsEditing(false);
     }
@@ -52,12 +59,48 @@ export function CharacterModal({ open, onOpenChange }: CharacterModalProps) {
       projectId: currentProject.id,
       name: 'New Character',
       description: 'Character description...',
+      appearance: '',
       imageUrl: '/placeholder.svg',
     };
     addCharacter(newChar);
     setSelectedCharacter(newChar);
     setIsEditing(true);
-    setEditForm({ name: newChar.name, description: newChar.description });
+    setEditForm({ name: newChar.name, description: newChar.description, appearance: '' });
+  };
+
+  const handleGenerateReference = async () => {
+    if (!selectedCharacter || !currentProject) return;
+
+    setIsGenerating(true);
+    try {
+      const { generateShotImage } = await import('@/lib/api');
+
+      // Formulate a portrait prompt
+      const portraitPrompt = `Cinematic portrait of ${editForm.name}. ${editForm.appearance}. ${editForm.description}. Neutral background, studio lighting.`;
+
+      const result = await generateShotImage(
+        selectedCharacter.id,
+        "Portrait Studio",
+        portraitPrompt,
+        "Eye Level",
+        "Close Up",
+        [], // No other characters for portrait
+        { style: settings.imageStyle },
+        settings.aiModel
+      );
+
+      if (result.success) {
+        updateCharacter(selectedCharacter.id, {
+          imageUrl: result.panel.image_url
+        });
+        toast.success("Actor visual generated");
+      }
+    } catch (e) {
+      console.error("Failed to generate character reference:", e);
+      toast.error("Failed to generate actor visual");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleDelete = () => {
@@ -147,8 +190,14 @@ export function CharacterModal({ open, onOpenChange }: CharacterModalProps) {
                     className="h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-white/20 hover:bg-white text-white hover:text-primary">
-                      <RefreshCw className="h-5 w-5" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 rounded-full bg-white/20 hover:bg-white text-white hover:text-primary"
+                      onClick={handleGenerateReference}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
                     </Button>
                     <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-white/20 hover:bg-white text-white hover:text-primary">
                       <Upload className="h-5 w-5" />
@@ -158,17 +207,8 @@ export function CharacterModal({ open, onOpenChange }: CharacterModalProps) {
 
                 <div className="space-y-3">
                   <div className="p-4 rounded-2xl bg-muted/30 border border-border/20">
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">Guidance Mode</h4>
-                    <RadioGroup defaultValue="description" className="gap-3">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="description" id="description" className="border-primary text-primary" />
-                        <Label htmlFor="description" className="text-xs font-medium cursor-pointer">Semantic Description</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="image" id="image" className="border-primary text-primary" />
-                        <Label htmlFor="image" className="text-xs font-medium cursor-pointer">Visual Reference</Label>
-                      </div>
-                    </RadioGroup>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">Actor Guidance</h4>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">Defining specific physical traits here helps the AI keep the actor consistent across scenes.</p>
                   </div>
                 </div>
               </div>
@@ -188,14 +228,24 @@ export function CharacterModal({ open, onOpenChange }: CharacterModalProps) {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Physical Description & Vibe</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Physical Appearance (AI Trigger)</Label>
+                      <Input
+                        value={isEditing ? editForm.appearance : (selectedCharacter.appearance || '')}
+                        onChange={(e) => setEditForm({ ...editForm, appearance: e.target.value })}
+                        disabled={!isEditing}
+                        className="h-10 border-border/50 bg-background/50 px-4 text-sm font-bold tracking-tight focus-visible:ring-primary/20"
+                        placeholder="e.g. Blond hair, blue suit, scar on chin..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Description & Vibe</Label>
                       <Textarea
                         value={isEditing ? editForm.description : selectedCharacter.description}
                         onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                         disabled={!isEditing}
-                        rows={5}
+                        rows={3}
                         className="border-border/50 bg-background/50 p-5 leading-relaxed text-sm font-medium focus-visible:ring-primary/20 resize-none"
-                        placeholder="Tall, brooding, wears a dark trench coat..."
+                        placeholder="Character background and personality..."
                       />
                     </div>
                   </div>

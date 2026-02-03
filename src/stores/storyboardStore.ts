@@ -19,6 +19,8 @@ interface StoryboardState {
   selectedGenre: Genre | null;
   isGenerating: boolean;
   generationProgress: string[];
+  selectedStyle: string | null;
+  selectedAspectRatio: string;
 
   // Scenes & Shots
   scenes: Scene[];
@@ -32,10 +34,21 @@ interface StoryboardState {
   selectedShotId: string | null;
   isCharacterModalOpen: boolean;
 
+  // Playback state
+  isPlaybackPlaying: boolean;
+  currentTime: number;
+  playbackSpeed: number;
+
   // Actions
   setProjects: (projects: Project[]) => void;
   setCurrentProject: (project: Project | null) => void;
   createProject: (name: string) => Project;
+  updateProject: (projectId: string, updates: Partial<Project>) => void;
+  deleteProject: (projectId: string) => void;
+
+  setIsPlaybackPlaying: (playing: boolean) => void;
+  setCurrentTime: (time: number) => void;
+  setPlaybackSpeed: (speed: number) => void;
 
   setWizardStep: (step: WizardStep) => void;
   setStoryInput: (input: string) => void;
@@ -43,6 +56,8 @@ interface StoryboardState {
   setIsGenerating: (generating: boolean) => void;
   addGenerationProgress: (progress: string) => void;
   clearGenerationProgress: () => void;
+  setSelectedStyle: (style: string | null) => void;
+  setSelectedAspectRatio: (aspectRatio: string) => void;
 
   setScenes: (scenes: Scene[]) => void;
   setShots: (shots: Shot[]) => void;
@@ -179,6 +194,8 @@ export const useStoryboardStore = create<StoryboardState>()(
       selectedGenre: null,
       isGenerating: false,
       generationProgress: [],
+      selectedStyle: 'sketch',
+      selectedAspectRatio: '16:9',
 
       scenes: [],
       shots: [],
@@ -188,9 +205,17 @@ export const useStoryboardStore = create<StoryboardState>()(
       selectedShotId: null,
       isCharacterModalOpen: false,
 
+      isPlaybackPlaying: false,
+      currentTime: 0,
+      playbackSpeed: 1,
+
       // Actions
       setProjects: (projects) => set({ projects }),
       setCurrentProject: (project) => set({ currentProject: project }),
+
+      setIsPlaybackPlaying: (playing) => set({ isPlaybackPlaying: playing }),
+      setCurrentTime: (time) => set({ currentTime: time }),
+      setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
 
       createProject: (name) => {
         const project: Project = {
@@ -199,9 +224,31 @@ export const useStoryboardStore = create<StoryboardState>()(
           createdAt: new Date(),
           updatedAt: new Date(),
         };
-        set((state) => ({ projects: [...state.projects, project], currentProject: project }));
+        set((state) => ({
+          projects: [...state.projects, project],
+          currentProject: project
+        }));
         return project;
       },
+
+      updateProject: (projectId, updates) => set((state) => {
+        const newProjects = state.projects.map((p) =>
+          p.id === projectId ? { ...p, ...updates, updatedAt: new Date() } : p
+        );
+        const updatedCurrent = state.currentProject?.id === projectId
+          ? { ...state.currentProject, ...updates, updatedAt: new Date() }
+          : state.currentProject;
+
+        return {
+          projects: newProjects,
+          currentProject: updatedCurrent
+        };
+      }),
+
+      deleteProject: (projectId) => set((state) => ({
+        projects: state.projects.filter((p) => p.id !== projectId),
+        currentProject: state.currentProject?.id === projectId ? null : state.currentProject
+      })),
 
       setWizardStep: (step) => set({ wizardStep: step }),
       setStoryInput: (input) => set({ storyInput: input }),
@@ -211,6 +258,8 @@ export const useStoryboardStore = create<StoryboardState>()(
         generationProgress: [...state.generationProgress, progress]
       })),
       clearGenerationProgress: () => set({ generationProgress: [] }),
+      setSelectedStyle: (selectedStyle) => set({ selectedStyle }),
+      setSelectedAspectRatio: (selectedAspectRatio) => set({ selectedAspectRatio }),
 
       setScenes: (scenes) => set({ scenes }),
       setShots: (shots) => set({ shots }),
@@ -267,6 +316,8 @@ export const useStoryboardStore = create<StoryboardState>()(
         selectedGenre: null,
         isGenerating: false,
         generationProgress: [],
+        selectedStyle: 'sketch',
+        selectedAspectRatio: '16:9',
       }),
 
       updateSettings: (newSettings) => set((state) => ({

@@ -2,6 +2,8 @@ export interface Project {
   id: string;
   name: string;
   genre?: string;
+  description?: string;
+  thumbnail?: string;
   createdAt: Date;
   updatedAt: Date;
   script_text?: string | null;
@@ -85,7 +87,7 @@ export const GENRES: { name: Genre; description: string }[] = [
   { name: 'Thriller', description: 'Tense, fast-moving plots with danger and suspense.' },
 ];
 
-export type WizardStep = 'story' | 'genre' | 'generating' | 'breakdown';
+export type WizardStep = 'story' | 'genre' | 'generating' | 'style' | 'breakdown';
 
 export interface Settings {
   // General
