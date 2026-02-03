@@ -1,4 +1,4 @@
-import { RefreshCw, Pencil, Shuffle, Upload, Video, Loader2 } from 'lucide-react';
+import { RefreshCw, Pencil, Shuffle, Upload, Video, Loader2, Zap, Palette, Sun } from 'lucide-react';
 import { Shot } from '@/types/storyboard';
 import { cn } from '@/lib/utils';
 
@@ -27,13 +27,14 @@ export function StoryboardPanel({
 }: StoryboardPanelProps) {
   // Parse character names from description (highlighted with accent color)
   const highlightCharacters = (text: string) => {
+    // In a real app, this would come from the characters store
     const characters = ['Tyler', 'Jack', 'Bob', 'Marcus', 'Rourke', 'Mary', 'James'];
     let result = text;
     characters.forEach((char) => {
       const regex = new RegExp(`\\b${char}\\b`, 'gi');
       result = result.replace(
         regex,
-        `<a href="#" class="text-primary hover:underline font-medium">${char}<span class="inline-block w-3 h-3 ml-0.5 align-middle"><svg viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3 inline"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span></a>`
+        `<span class="text-primary font-bold decoration-primary/30 decoration-2 underline-offset-4 cursor-pointer hover:underline">${char}</span>`
       );
     });
     return result;
@@ -59,6 +60,22 @@ export function StoryboardPanel({
         {/* Shot Number Indicator */}
         <div className="absolute right-4 top-4 z-10 px-3 py-1 rounded-lg bg-primary/90 text-primary-foreground text-[10px] font-bold tracking-widest backdrop-blur-sm shadow-lg">
           S{sceneNumber} · P{shot.shotNumber}
+        </div>
+
+        {/* Cinematic Directive Badges (New Intelligent Feature) */}
+        <div className="absolute left-4 bottom-4 z-10 flex flex-wrap gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          {shot.lightingMood && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/60 border border-white/10 backdrop-blur-md text-[9px] font-bold text-white uppercase tracking-tighter">
+              <Sun className="h-3 w-3 text-yellow-400" />
+              {shot.lightingMood}
+            </div>
+          )}
+          {shot.composition && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/60 border border-white/10 backdrop-blur-md text-[9px] font-bold text-white uppercase tracking-tighter">
+              <Zap className="h-3 w-3 text-cyan-400" />
+              {shot.composition}
+            </div>
+          )}
         </div>
 
         <img
@@ -87,9 +104,10 @@ export function StoryboardPanel({
       <div className="p-4 border-b border-border/30 bg-card">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Visual Narrative</span>
-          <div className="flex gap-1">
-            <div className="h-1.5 w-1.5 rounded-full bg-primary/30" />
-            <div className="h-1.5 w-1.5 rounded-full bg-primary/30" />
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold text-muted-foreground uppercase">{shot.shotSize}</span>
+            <div className="h-1 w-1 rounded-full bg-border" />
+            <span className="text-[9px] font-bold text-muted-foreground uppercase">{shot.cameraAngle}</span>
           </div>
         </div>
         <p

@@ -3,7 +3,7 @@
  * Includes validation, fallback placeholders, and error recovery
  */
 
-import { generateWithGemini, type GeminiResult } from './gemini-client';
+import { generateWithGemini, type GeminiResult, type GeminiError } from './gemini-client';
 
 // ============= TYPES =============
 
@@ -84,29 +84,39 @@ function buildImagePrompt(
     shotDescription: string,
     cameraAngle: string,
     shotSize: string,
-    characters?: { name: string; description: string }[],
-    style?: string
+    characters?: { name: string; description: string; appearance?: string }[],
+    options?: {
+        style?: string,
+        mood?: string,
+        composition?: string
+    }
 ): string {
-    const charInfo = characters && characters.length > 0
-        ? `\nCharacters: ${characters.map(c => `${c.name} (${c.description})`).join(', ')}`
+    // Character consistency: Filter characters mentioned in the shot description
+    const relevantCharacters = characters?.filter(c =>
+        shotDescription.toLowerCase().includes(c.name.toLowerCase())
+    ) || [];
+
+    const charInfo = relevantCharacters.length > 0
+        ? `\nCHARACTERS IN SHOT: ${relevantCharacters.map(c => `${c.name} (${c.description}${c.appearance ? `, ${c.appearance}` : ''})`).join(', ')}`
         : '';
 
-    return `Create a simple, clean SVG illustration for a storyboard panel.
+    const cinematicMood = options?.mood ? `\nLIGHTING/MOOD: ${options.mood}` : '';
+    const compositionRule = options?.composition ? `\nCOMPOSITION: ${options.composition}` : '';
 
-SCENE CONTEXT: ${sceneDescription}
-SHOT DESCRIPTION: ${shotDescription}
-CAMERA: ${cameraAngle}
-SHOT SIZE: ${shotSize}
-STYLE: ${style || 'Simple line drawing, black and white'}${charInfo}
+    return `Create a professional cinematic SVG storyboard frame.
+    
+SCENE: ${sceneDescription}
+ACTION: ${shotDescription}
+CAMERA: ${shotSize} shot, ${cameraAngle}${cinematicMood}${compositionRule}${charInfo}
+STYLE: ${options?.style || 'Clean cinematic line work, black and white'}
 
-REQUIREMENTS:
-1. Return ONLY raw SVG code (no markdown, no explanations)
-2. Start with <svg and end with </svg>
-3. Use simple shapes and thick lines (stroke-width: 3-5)
-4. Black and white only (#000 for lines, #fff for fills)
-5. Viewbox: 400x300
-6. Keep it minimal and clear - this is a storyboard sketch
-7. Focus on composition and framing for the ${shotSize} shot
+DIRECTIVES:
+1. Return ONLY raw SVG code starting with <svg and ending with </svg>.
+2. Viewbox: 400x300. Black lines, white backgrounds.
+3. Use simple geometric primitives and path strokes (stroke-width: 2.5).
+4. Focus strictly on the ${shotSize} framing and ${options?.composition || 'balanced'} composition.
+5. If characters are specified, represent them consistently based on descriptions.
+6. Minimalist but expressive sketch style. No text in the image.
 
 Return ONLY the SVG code.`;
 }
@@ -118,8 +128,12 @@ export async function generateStoryboardImage(
     shotDescription: string,
     cameraAngle: string,
     shotSize: string,
-    characters?: { name: string; description: string }[],
-    style?: string,
+    characters?: { name: string; description: string; appearance?: string }[],
+    options?: {
+        style?: string,
+        mood?: string,
+        composition?: string
+    },
     modelName?: string
 ): Promise<GenerateImageResponse> {
 
@@ -143,7 +157,7 @@ export async function generateStoryboardImage(
         cameraAngle,
         shotSize,
         characters,
-        style
+        options
     );
 
     // Call Gemini
@@ -155,15 +169,16 @@ export async function generateStoryboardImage(
 
     // Create fallback placeholder
     const placeholderSVG = createPlaceholderSVG(shotDescription, cameraAngle, shotSize);
-    const placeholderUrl = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(placeholderSVG)}`;
+    const placeholderUrl = `data: image / svg + xml; charset = UTF - 8, ${encodeURIComponent(placeholderSVG)} `;
 
     // Handle API failure
     if (!result.success) {
-        console.warn('Image generation failed:', result.error);
+        const error = result as GeminiError;
+        console.warn('Image generation failed:', error.error);
 
         return {
             success: false,
-            error: result.error,
+            error: error.error,
             userMessage: 'Could not generate image. Using placeholder.',
             placeholderUrl
         };
@@ -185,7 +200,7 @@ export async function generateStoryboardImage(
     }
 
     // Create data URL
-    const imageUrl = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+    const imageUrl = `data: image / svg + xml; charset = UTF - 8, ${encodeURIComponent(svg)} `;
 
     return {
         success: true,
@@ -214,8 +229,12 @@ export async function generateStoryboardBatch(
         cameraAngle: string;
         shotSize: string;
     }>,
-    characters?: { name: string; description: string }[],
-    style?: string,
+    characters?: { name: string; description: string; appearance?: string }[],
+    options?: {
+        style?: string,
+        mood?: string,
+        composition?: string
+    },
     modelName?: string,
     onProgress?: ProgressCallback
 ): Promise<Map<string, GenerateImageResponse>> {
@@ -240,7 +259,7 @@ export async function generateStoryboardBatch(
             shot.cameraAngle,
             shot.shotSize,
             characters,
-            style,
+            options,
             modelName
         );
 

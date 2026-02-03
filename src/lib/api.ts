@@ -46,6 +46,9 @@ export interface Shot {
   order: number;
   equipment: string | null;
   focal_length: string | null;
+  visual_style: string | null;
+  lighting_mood: string | null;
+  composition: string | null;
   created_at: string;
 }
 
@@ -232,6 +235,9 @@ export async function updateShot(shotId: string, updates: {
   notes?: string;
   equipment?: string;
   focal_length?: string;
+  visual_style?: string;
+  lighting_mood?: string;
+  composition?: string;
 }) {
   await delay(50);
   const shots = getList<Shot>(KEYS.SHOTS);
@@ -301,7 +307,7 @@ export async function deleteCharacter(characterId: string) {
 
 // ============= AI FUNCTIONS (PRODUCTION-GRADE) =============
 
-import { parseScriptWithGemini, type ParseScriptResponse } from './script-parser';
+import { parseScriptWithGemini, type ParseScriptResponse, type ParseScriptError } from './script-parser';
 
 export async function parseScript(projectId: string, scriptText: string, genre?: string, modelName: string = "gemini-pro") {
   try {
@@ -365,7 +371,6 @@ export async function parseScript(projectId: string, scriptText: string, genre?:
       sceneCount++;
 
       // Generate default shots for each scene
-      // This ensures shots exist for storyboard generation
       const defaultShots = generateDefaultShots(sceneId, parsedScene.description);
       shots.push(...defaultShots);
       shotCount += defaultShots.length;
@@ -390,12 +395,6 @@ export async function parseScript(projectId: string, scriptText: string, genre?:
     saveList(KEYS.SCENES, scenes);
     saveList(KEYS.CHARACTERS, characters);
     saveList(KEYS.SHOTS, shots);
-
-    console.log('[parseScript] Data saved successfully', {
-      scenes: sceneCount,
-      characters: characterCount,
-      shots: shotCount
-    });
 
     return {
       success: true,
@@ -438,11 +437,16 @@ function generateDefaultShots(sceneId: string, sceneDescription: string): Shot[]
     order: index + 1,
     equipment: 'Tripod',
     focal_length: '50mm',
+    visual_style: null,
+    lighting_mood: null,
+    composition: null,
     created_at: new Date().toISOString()
   }));
 }
 
 // ============= GENERATION API =============
+
+import { generateStoryboardImage } from './image-generator';
 
 export async function generateStoryboard(projectId: string, style?: string, modelName: string = "gemini-pro") {
   // 1. Get all shots for the project
@@ -466,16 +470,18 @@ export async function generateStoryboard(projectId: string, style?: string, mode
   const errors: any[] = [];
   const characters = getList<Character>(KEYS.CHARACTERS).filter(c => c.project_id === projectId);
 
-  // 3. Sequential Generation Loop (to avoid rate limits and logic overlap)
-  // In a real app, this would be a queue or a batch job.
+  // 3. Sequential Generation Loop
   for (const shot of shotsToGenerate) {
     try {
       const scene = scenes.find(s => s.id === shot.scene_id);
       if (!scene) continue;
 
-      const characterList = characters.map(c => ({ name: c.name, description: c.description }));
+      const characterList = characters.map(c => ({
+        name: c.name,
+        description: c.description,
+        appearance: c.appearance || undefined
+      }));
 
-      // Re-use our robust image generation function
       await generateShotImage(
         shot.id,
         `${scene.location} - ${scene.time_of_day}. ${scene.description}`,
@@ -483,9 +489,12 @@ export async function generateStoryboard(projectId: string, style?: string, mode
         shot.camera_angle,
         shot.shot_size,
         characterList,
-        style,
-        '16:9',
-        modelName // Pass the selected model
+        {
+          style: shot.visual_style || style,
+          mood: shot.lighting_mood || undefined,
+          composition: shot.composition || undefined
+        },
+        modelName
       );
       generatedCount++;
     } catch (e: any) {
@@ -508,97 +517,54 @@ export async function generateShotImage(
   shotDescription: string,
   cameraAngle: string,
   shotSize: string,
-  characters?: { name: string; description: string }[],
-  style?: string,
-  aspectRatio?: string,
+  characters?: { name: string; description: string; appearance?: string }[],
+  options?: {
+    style?: string,
+    mood?: string,
+    composition?: string
+  },
   modelName: string = "gemini-pro"
 ) {
-  await delay(1000);
-  // Return a placeholder image
-  // Use Gemini to generate an SVG for the shot
   try {
-    const prompt = `
-      Create a simple, thick-line SVG illustration for a storyboard shot.
-      Scene: ${sceneDescription}
-      Shot Action: ${shotDescription}
-      Camera: ${cameraAngle}, ${shotSize}
-      Style: ${style || 'sketch'}
-      
-      Return ONLY the raw SVG code starting with <svg and ending with </svg>. 
-      Do not include markdown blocks. 
-      Keep it simple, black and white, wireframe style.
-    `;
+    const result = await generateStoryboardImage(
+      sceneDescription,
+      shotDescription,
+      cameraAngle,
+      shotSize,
+      characters,
+      options,
+      modelName
+    );
 
-    // Fallback strategy helper
-    const generateWithFallback = async (promptText: string) => {
-      // List of models to try in order of preference/stability
-      const modelsToTry = [
-        modelName,
-        'gemini-2.5-flash',
-        'gemini-2.0-flash-lite-001',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash'
-      ];
-      const uniqueModels = [...new Set(modelsToTry)]; // Remove duplicates
+    if (result.success && result.imageUrl) {
+      const panels = getList<StoryboardPanel>(KEYS.PANELS);
+      const newPanel: StoryboardPanel = {
+        id: crypto.randomUUID(),
+        shot_id: shotId,
+        version: 1, // Logic to increment version could be added
+        image_url: result.imageUrl,
+        prompt_used: shotDescription,
+        seed: null,
+        created_at: new Date().toISOString()
+      };
 
-      let lastError;
+      // Keep only most recent panel if that's desired, or add versioning
+      panels.push(newPanel);
+      saveList(KEYS.PANELS, panels);
 
-      for (const mName of uniqueModels) {
-        try {
-          // If the model name looks like a path, use it, otherwise let SDK resolve
-          const m = getModel(mName);
-          console.log(`Trying model: ${mName}`);
-          const result = await m.generateContent(promptText);
-          return await result.response;
-        } catch (e: any) {
-          console.warn(`Model ${mName} failed:`, e.message);
-          lastError = e;
-          // Only terminal auth errors stop the retry
-          if (e.message?.includes('API_KEY_INVALID')) {
-            throw e;
-          }
-        }
-      }
-      throw lastError || new Error("All models failed");
-    };
-
-    const response = await generateWithFallback(prompt);
-    let svgContent = response.text();
-
-    // Cleanup
-    svgContent = svgContent.replace(/```xml/g, '').replace(/```svg/g, '').replace(/```/g, '').trim();
-    if (!svgContent.startsWith('<svg')) {
-      // Fallback if not valid SVG
-      throw new Error("Invalid SVG generation");
+      return {
+        success: true,
+        panel: newPanel
+      };
     }
 
-    const placeholder = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svgContent)}`;
+    throw new Error(result.error || "Generation failed");
 
-
-    // Save to panels
-    const panels = getList<StoryboardPanel>(KEYS.PANELS);
-    const newPanel: StoryboardPanel = {
-      id: crypto.randomUUID(),
-      shot_id: shotId,
-      version: 1,
-      image_url: placeholder,
-      prompt_used: shotDescription,
-      seed: null,
-      created_at: new Date().toISOString()
-    };
-    panels.push(newPanel);
-    saveList(KEYS.PANELS, panels);
-
-    return {
-      success: true,
-      panel: newPanel
-    };
   } catch (error) {
-    console.error("Gemini Image Gen Error:", error);
-    // Fallback to placeholder
+    console.error("generateShotImage Error:", error);
+    // Placeholder fallback
     const placeholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Crect fill='%23cccccc' width='800' height='600'/%3E%3Ctext fill='%23333333' font-family='sans-serif' font-size='30' dy='10.5' font-weight='bold' x='50%25' y='50%25' text-anchor='middle'%3EMock Image (AI Failed)%3C/text%3E%3C/svg%3E";
 
-    // Save to panels
     const panels = getList<StoryboardPanel>(KEYS.PANELS);
     const newPanel: StoryboardPanel = {
       id: crypto.randomUUID(),

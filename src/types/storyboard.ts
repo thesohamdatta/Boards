@@ -38,6 +38,9 @@ export interface Shot {
   aspectRatio: string;
   imageUrl?: string;
   promptUsed?: string;
+  visualStyle?: string;
+  lightingMood?: string;
+  composition?: string;
 }
 
 export interface StoryboardPanel {

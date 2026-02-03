@@ -1,11 +1,80 @@
 import { useStoryboardStore } from '@/stores/storyboardStore';
 import { StoryboardPanel } from './StoryboardPanel';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Pencil, LayoutGrid, List, Loader2, Film } from 'lucide-react';
+import { Sparkles, Pencil, LayoutGrid, List, Loader2, Film, GripVertical } from 'lucide-react';
 import { useState } from 'react';
 import { generateStoryboard, generateShotImage, getScenes } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+interface SortableShotProps {
+  shot: any;
+  sceneNumber: number;
+  isSelected: boolean;
+  onSelect: () => void;
+  onRetry: () => void;
+  isLoading: boolean;
+  viewMode: 'grid' | 'list';
+}
+
+function SortableShot({ shot, sceneNumber, isSelected, onSelect, onRetry, isLoading, viewMode }: SortableShotProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: shot.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group">
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute left-2 top-2 z-20 p-1 rounded-md bg-black/40 text-white/50 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
+      >
+        <GripVertical className="h-4 w-4" />
+      </div>
+      <StoryboardPanel
+        shot={shot}
+        sceneNumber={sceneNumber}
+        isSelected={isSelected}
+        onClick={onSelect}
+        onEdit={() => console.log('Edit shot', shot.id)}
+        onRetry={onRetry}
+        onVariation={() => console.log('Variation for shot', shot.id)}
+        onUpload={() => console.log('Upload for shot', shot.id)}
+        isLoading={isLoading}
+      />
+    </div>
+  );
+}
 
 export function StoryboardGrid() {
   const {
@@ -16,14 +85,35 @@ export function StoryboardGrid() {
     currentProject,
     characters,
     setShots,
-    settings
+    settings,
+    reorderShots
   } = useStoryboardStore();
+
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingShots, setGeneratingShots] = useState<Set<string>>(new Set());
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement before drag starts (allows clicks)
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const getSceneForShot = (sceneId: string) => {
     return scenes.find((s) => s.id === sceneId);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      reorderShots(active.id.toString(), over.id.toString());
+      toast.info('Shot reordered');
+    }
   };
 
   const handleGenerateStoryboard = async () => {
@@ -206,30 +296,39 @@ export function StoryboardGrid() {
           </p>
         </div>
       ) : (
-        <div className={cn(
-          "grid gap-8 p-2",
-          viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1 max-w-4xl mx-auto"
-        )}>
-          {shots.map((shot) => {
-            const scene = getSceneForShot(shot.sceneId);
-            const isRegenerating = generatingShots.has(shot.id);
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={shots.map(s => s.id)}
+            strategy={viewMode === 'grid' ? rectSortingStrategy : verticalListSortingStrategy}
+          >
+            <div className={cn(
+              "grid gap-8 p-2",
+              viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1 max-w-4xl mx-auto"
+            )}>
+              {shots.map((shot) => {
+                const scene = getSceneForShot(shot.sceneId);
+                const isRegenerating = generatingShots.has(shot.id);
 
-            return (
-              <StoryboardPanel
-                key={shot.id}
-                shot={shot}
-                sceneNumber={scene?.sceneNumber || 1}
-                isSelected={selectedShotId === shot.id}
-                onClick={() => setSelectedShotId(shot.id)}
-                onEdit={() => console.log('Edit shot', shot.id)}
-                onRetry={() => handleRetryShot(shot.id)}
-                onVariation={() => console.log('Variation for shot', shot.id)}
-                onUpload={() => console.log('Upload for shot', shot.id)}
-                isLoading={isRegenerating}
-              />
-            );
-          })}
-        </div>
+                return (
+                  <SortableShot
+                    key={shot.id}
+                    shot={shot}
+                    sceneNumber={scene?.sceneNumber || 1}
+                    isSelected={selectedShotId === shot.id}
+                    onSelect={() => setSelectedShotId(shot.id)}
+                    onRetry={() => handleRetryShot(shot.id)}
+                    isLoading={isRegenerating}
+                    viewMode={viewMode}
+                  />
+                );
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );

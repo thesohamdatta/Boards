@@ -56,6 +56,7 @@ interface StoryboardState {
   setActiveView: (view: 'storyboard' | 'shotlist' | 'story' | 'animatic') => void;
   setSelectedShotId: (shotId: string | null) => void;
   setIsCharacterModalOpen: (open: boolean) => void;
+  reorderShots: (activeId: string, overId: string) => void;
 
   resetWizard: () => void;
   updateSettings: (settings: Partial<Settings>) => void;
@@ -235,6 +236,30 @@ export const useStoryboardStore = create<StoryboardState>()(
       setActiveView: (view) => set({ activeView: view }),
       setSelectedShotId: (shotId) => set({ selectedShotId: shotId }),
       setIsCharacterModalOpen: (open) => set({ isCharacterModalOpen: open }),
+
+      reorderShots: (activeId, overId) => {
+        const { shots } = get();
+        const activeIndex = shots.findIndex((s) => s.id === activeId);
+        const overIndex = shots.findIndex((s) => s.id === overId);
+
+        if (activeIndex === -1 || overIndex === -1) return;
+
+        const newShots = [...shots];
+        const [movedShot] = newShots.splice(activeIndex, 1);
+        newShots.splice(overIndex, 0, movedShot);
+
+        // Re-number shots within the scene to maintain sequence integrity
+        const sceneId = movedShot.sceneId;
+        let counter = 1;
+        const normalizedShots = newShots.map((s) => {
+          if (s.sceneId === sceneId) {
+            return { ...s, shotNumber: counter++ };
+          }
+          return s;
+        });
+
+        set({ shots: normalizedShots });
+      },
 
       resetWizard: () => set({
         wizardStep: 'story',
