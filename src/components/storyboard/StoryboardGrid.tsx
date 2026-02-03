@@ -28,6 +28,7 @@ import { CSS } from '@dnd-kit/utilities';
 interface SortableShotProps {
   shot: any;
   sceneNumber: number;
+  characterNames?: string[];
   isSelected: boolean;
   onSelect: () => void;
   onRetry: () => void;
@@ -35,7 +36,16 @@ interface SortableShotProps {
   viewMode: 'grid' | 'list';
 }
 
-function SortableShot({ shot, sceneNumber, isSelected, onSelect, onRetry, isLoading, viewMode }: SortableShotProps) {
+function SortableShot({
+  shot,
+  sceneNumber,
+  characterNames,
+  isSelected,
+  onSelect,
+  onRetry,
+  isLoading,
+  viewMode
+}: SortableShotProps) {
   const {
     attributes,
     listeners,
@@ -64,6 +74,7 @@ function SortableShot({ shot, sceneNumber, isSelected, onSelect, onRetry, isLoad
       <StoryboardPanel
         shot={shot}
         sceneNumber={sceneNumber}
+        characterNames={characterNames}
         isSelected={isSelected}
         onClick={onSelect}
         onEdit={() => console.log('Edit shot', shot.id)}
@@ -141,7 +152,11 @@ export function StoryboardGrid() {
         const scene = getSceneForShot(shot.sceneId);
         if (!scene) continue;
 
-        const characterList = characters.map(c => ({ name: c.name, description: c.description }));
+        const characterList = characters.map(c => ({
+          name: c.name,
+          description: c.description,
+          appearance: c.appearance || undefined
+        }));
 
         try {
           const result = await generateShotImage(
@@ -151,8 +166,11 @@ export function StoryboardGrid() {
             shot.cameraAngle,
             shot.shotSize,
             characterList,
-            settings.imageStyle,
-            '16:9',
+            {
+              style: shot.visualStyle || settings.imageStyle,
+              mood: shot.lightingMood || undefined,
+              composition: shot.composition || undefined
+            },
             settings.aiModel
           );
 
@@ -197,17 +215,24 @@ export function StoryboardGrid() {
     setGeneratingShots(prev => new Set(prev).add(shotId));
 
     try {
-      const characterList = characters.map(c => ({ name: c.name, description: c.description }));
+      const characterList = characters.map(c => ({
+        name: c.name,
+        description: c.description,
+        appearance: c.appearance || undefined
+      }));
 
       const result = await generateShotImage(
         shotId,
-        `${scene.location} - ${scene.lighting}. ${scene.description}`,
+        `${scene.location} - ${scene.lighting || 'DAY'}. ${scene.description}`,
         shot.description,
         shot.cameraAngle,
         shot.shotSize,
         characterList,
-        settings.imageStyle,
-        '16:9',
+        {
+          style: shot.visualStyle || settings.imageStyle,
+          mood: shot.lightingMood || undefined,
+          composition: shot.composition || undefined
+        },
         settings.aiModel
       );
 

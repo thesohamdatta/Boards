@@ -12,6 +12,7 @@ export interface Character {
   projectId: string;
   name: string;
   description: string;
+  appearance?: string;
   imageUrl?: string;
 }
 

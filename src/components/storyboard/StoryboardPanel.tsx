@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 interface StoryboardPanelProps {
   shot: Shot;
   sceneNumber: number;
+  characterNames?: string[];
   onEdit?: () => void;
   onRetry?: () => void;
   onVariation?: () => void;
@@ -17,6 +18,7 @@ interface StoryboardPanelProps {
 export function StoryboardPanel({
   shot,
   sceneNumber,
+  characterNames = [],
   onEdit,
   onRetry,
   onVariation,
@@ -27,14 +29,19 @@ export function StoryboardPanel({
 }: StoryboardPanelProps) {
   // Parse character names from description (highlighted with accent color)
   const highlightCharacters = (text: string) => {
-    // In a real app, this would come from the characters store
-    const characters = ['Tyler', 'Jack', 'Bob', 'Marcus', 'Rourke', 'Mary', 'James'];
+    if (!text) return '';
+
+    // Use project characters or fallback to defaults
+    const names = characterNames.length > 0
+      ? characterNames
+      : ['Tyler', 'Jack', 'Bob', 'Marcus', 'Rourke', 'Mary', 'James'];
+
     let result = text;
-    characters.forEach((char) => {
+    names.forEach((char) => {
       const regex = new RegExp(`\\b${char}\\b`, 'gi');
       result = result.replace(
         regex,
-        `<span class="text-primary font-bold decoration-primary/30 decoration-2 underline-offset-4 cursor-pointer hover:underline">${char}</span>`
+        `<span class="text-primary font-bold shadow-[0_1px_0_0_currentColor] cursor-pointer hover:bg-primary/10 transition-colors rounded-sm px-0.5">${char}</span>`
       );
     });
     return result;
@@ -74,6 +81,12 @@ export function StoryboardPanel({
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/60 border border-white/10 backdrop-blur-md text-[9px] font-bold text-white uppercase tracking-tighter">
               <Zap className="h-3 w-3 text-cyan-400" />
               {shot.composition}
+            </div>
+          )}
+          {shot.visualStyle && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/60 border border-white/10 backdrop-blur-md text-[9px] font-bold text-white uppercase tracking-tighter">
+              <Palette className="h-3 w-3 text-purple-400" />
+              {shot.visualStyle}
             </div>
           )}
         </div>

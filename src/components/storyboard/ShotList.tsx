@@ -11,7 +11,7 @@ import { MessageSquare, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function ShotList() {
-  const { scenes, shots, selectedShotId, setSelectedShotId } = useStoryboardStore();
+  const { scenes, shots, selectedShotId, setSelectedShotId, characters } = useStoryboardStore();
 
   const getSceneForShot = (sceneId: string) => {
     return scenes.find((s) => s.id === sceneId);
@@ -19,13 +19,19 @@ export function ShotList() {
 
   // Highlight character names
   const highlightCharacters = (text: string) => {
-    const characters = ['Tyler', 'Jack', 'Bob', 'Marcus', 'Rourke', 'Mary', 'James'];
+    if (!text) return '';
+
+    // Use project characters or fallback to defaults
+    const charNames = characters.length > 0
+      ? characters.map(c => c.name)
+      : ['Tyler', 'Jack', 'Bob', 'Marcus', 'Rourke', 'Mary', 'James'];
+
     let result = text;
-    characters.forEach((char) => {
+    charNames.forEach((char) => {
       const regex = new RegExp(`\\b${char}\\b`, 'gi');
       result = result.replace(
         regex,
-        `<span class="text-primary font-bold">${char}</span>`
+        `<span class="text-primary font-bold shadow-[0_1px_0_0_currentColor]">${char}</span>`
       );
     });
     return result;

@@ -307,7 +307,7 @@ export async function deleteCharacter(characterId: string) {
 
 // ============= AI FUNCTIONS (PRODUCTION-GRADE) =============
 
-import { parseScriptWithGemini, type ParseScriptResponse, type ParseScriptError } from './script-parser';
+import { parseScriptWithGemini, type ParseScriptResponse, type ParseScriptError, type ParseScriptResult } from './script-parser';
 
 export async function parseScript(projectId: string, scriptText: string, genre?: string, modelName: string = "gemini-pro") {
   try {
@@ -327,23 +327,26 @@ export async function parseScript(projectId: string, scriptText: string, genre?:
 
     // Handle parsing failure
     if (!result.success) {
-      console.error('[parseScript] Parsing failed:', result.error);
+      const errorResult = result as ParseScriptError;
+      console.error('[parseScript] Parsing failed:', errorResult.error);
       return {
         success: false,
-        error: result.userMessage,
+        error: errorResult.userMessage,
         scenes_created: 0,
         characters_created: 0
       };
     }
 
+    const parseResult = result as ParseScriptResult;
+
     // Log warnings if any
-    if (result.warnings.length > 0) {
-      console.warn('[parseScript] Warnings:', result.warnings);
+    if (parseResult.warnings.length > 0) {
+      console.warn('[parseScript] Warnings:', parseResult.warnings);
     }
 
     console.log('[parseScript] Parsing succeeded', {
-      scenesFound: result.scenes.length,
-      charactersFound: result.characters.length
+      scenesFound: parseResult.scenes.length,
+      charactersFound: parseResult.characters.length
     });
 
     // Save to localStorage
@@ -356,7 +359,7 @@ export async function parseScript(projectId: string, scriptText: string, genre?:
     let shotCount = 0;
 
     // Process Scenes and generate Shots
-    for (const parsedScene of result.scenes) {
+    for (const parsedScene of parseResult.scenes) {
       const sceneId = crypto.randomUUID();
 
       scenes.push({
@@ -377,7 +380,7 @@ export async function parseScript(projectId: string, scriptText: string, genre?:
     }
 
     // Process Characters
-    for (const parsedChar of result.characters) {
+    for (const parsedChar of parseResult.characters) {
       characters.push({
         id: crypto.randomUUID(),
         project_id: projectId,
@@ -446,7 +449,7 @@ function generateDefaultShots(sceneId: string, sceneDescription: string): Shot[]
 
 // ============= GENERATION API =============
 
-import { generateStoryboardImage } from './image-generator';
+import { generateStoryboardImage, type GenerateImageResult, type GenerateImageError } from './image-generator';
 
 export async function generateStoryboard(projectId: string, style?: string, modelName: string = "gemini-pro") {
   // 1. Get all shots for the project
@@ -558,7 +561,8 @@ export async function generateShotImage(
       };
     }
 
-    throw new Error(result.error || "Generation failed");
+    const errorResult = result as GenerateImageError;
+    throw new Error(errorResult.error || "Generation failed");
 
   } catch (error) {
     console.error("generateShotImage Error:", error);
@@ -678,6 +682,9 @@ export async function importProject(data: any) {
           order: shot.order || 0,
           equipment: shot.equipment || null,
           focal_length: shot.focal_length || null,
+          visual_style: shot.visual_style || null,
+          lighting_mood: shot.lighting_mood || null,
+          composition: shot.composition || null,
           created_at: new Date().toISOString()
         });
 
