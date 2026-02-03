@@ -313,7 +313,7 @@ export async function deleteCharacter(characterId: string) {
 
 import { parseScriptWithGemini, type ParseScriptResponse, type ParseScriptError, type ParseScriptResult } from './script-parser';
 
-export async function parseScript(projectId: string, scriptText: string, genre?: string, modelName: string = "gemini-pro") {
+export async function parseScript(projectId: string, scriptText: string, genre?: string, modelName: string = "gemini-1.5-flash") {
   try {
     console.log('[parseScript] Starting script analysis', {
       projectId,
@@ -455,7 +455,7 @@ function generateDefaultShots(sceneId: string, sceneDescription: string): Shot[]
 
 import { generateStoryboardImage, type GenerateImageResult, type GenerateImageError } from './image-generator';
 
-export async function generateStoryboard(projectId: string, style?: string, modelName: string = "gemini-pro") {
+export async function generateStoryboard(projectId: string, style?: string, modelName: string = "gemini-1.5-flash") {
   // 1. Get all shots for the project
   const scenes = getList<Scene>(KEYS.SCENES).filter(s => s.project_id === projectId);
   let shots = getList<Shot>(KEYS.SHOTS).filter(s => scenes.some(scene => scene.id === s.scene_id));
@@ -530,7 +530,7 @@ export async function generateShotImage(
     mood?: string,
     composition?: string
   },
-  modelName: string = "gemini-pro"
+  modelName: string = "gemini-1.5-flash"
 ) {
   try {
     const result = await generateStoryboardImage(

@@ -16,10 +16,10 @@ const CONFIG = {
     RETRY_DELAY_MS: 2000,
     MAX_RETRIES: 1, // Single retry only
     MODELS_PRIORITY: [
-        'gemini-2.5-flash',
-        'gemini-2.0-flash-lite-001',
+        'gemini-1.5-flash',
         'gemini-2.0-flash',
-        'gemini-1.5-flash'
+        'gemini-2.0-flash-lite-001',
+        'gemini-1.5-pro'
     ]
 };
 
@@ -239,6 +239,7 @@ export async function generateWithGemini(request: GeminiRequest): Promise<Gemini
             } else if (errorMessage.includes('404') || errorMessage.includes('not found')) {
                 // Model not available, try next one
                 errorType = 'API_ERROR';
+                retryable = true; // Ensure we try the next model
             }
 
             logger.log('WARN', 'Model Failed', {

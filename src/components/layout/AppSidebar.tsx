@@ -14,6 +14,8 @@ interface AppSidebarProps {
   onNewProject?: () => void;
 }
 
+import { AppLogo } from './AppLogo';
+
 export function AppSidebar({ onNewProject }: AppSidebarProps) {
   const { projects, currentProject, activeView, setActiveView, settings, updateSettings } = useStoryboardStore();
 
@@ -39,15 +41,8 @@ export function AppSidebar({ onNewProject }: AppSidebarProps) {
   return (
     <>
       <aside className="flex h-screen w-80 flex-col bg-background/40 border-r border-border/10 backdrop-blur-2xl z-20">
-        {/* Branding - High End Cinematic Logotype */}
-        <div className="flex items-center gap-4 px-8 py-10">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-primary/80 to-accent shadow-xl shadow-primary/20 ring-1 ring-white/10">
-            <Film className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-black tracking-tighter text-foreground uppercase leading-none">Boards</span>
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary mt-1">Studio Architecture</span>
-          </div>
+        <div className="px-8 py-10">
+          <AppLogo />
         </div>
 
         {/* Action: New Narrative Persistence */}
@@ -169,10 +164,10 @@ export function AppSidebar({ onNewProject }: AppSidebarProps) {
             ))}
           </div>
         </div>
-      </aside>
+      </aside >
 
       {/* Modals remain the same but will pick up global CSS changes */}
-      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+      < SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
       <AccountModal open={accountOpen} onOpenChange={setAccountOpen} />
       <TutorialsModal open={tutorialsOpen} onOpenChange={setTutorialsOpen} />
       <ArchivedModal open={archivedOpen} onOpenChange={setArchivedOpen} />

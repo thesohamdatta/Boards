@@ -2,7 +2,7 @@ import { useStoryboardStore } from '@/stores/storyboardStore';
 import { StoryboardPanel } from './StoryboardPanel';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Pencil, LayoutGrid, List, Loader2, Film, GripVertical } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { generateStoryboard, generateShotImage, getScenes, updateProject as apiUpdateProject } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -115,6 +115,14 @@ export function StoryboardGrid() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Auto-generate images on mount if some are missing and auto-generate is on
+  useEffect(() => {
+    const missingImages = shots.some(s => !s.imageUrl || s.imageUrl.length < 50);
+    if (missingImages && settings.autoGenerateImages && !isGenerating && shots.length > 0) {
+      handleGenerateStoryboard();
+    }
+  }, [shots.length, settings.autoGenerateImages]);
 
   const getSceneForShot = (sceneId: string) => {
     return scenes.find((s) => s.id === sceneId);

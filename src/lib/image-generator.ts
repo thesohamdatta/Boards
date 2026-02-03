@@ -51,7 +51,10 @@ function extractSVG(text: string): string | null {
         return null;
     }
 
-    const svg = cleaned.slice(svgStart, svgEnd + 6); // +6 for '</svg>'
+    const svg = cleaned.slice(svgStart, svgEnd + 6).trim();
+
+    // Final sanity check: must resemble an actual SVG
+    if (!svg.includes('viewBox') && !svg.includes('width=')) return null;
 
     return isValidSVG(svg) ? svg : null;
 }
@@ -169,7 +172,7 @@ export async function generateStoryboardImage(
 
     // Create fallback placeholder
     const placeholderSVG = createPlaceholderSVG(shotDescription, cameraAngle, shotSize);
-    const placeholderUrl = `data: image / svg + xml; charset = UTF - 8, ${encodeURIComponent(placeholderSVG)} `;
+    const placeholderUrl = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(placeholderSVG)}`;
 
     // Handle API failure
     if (!result.success) {
@@ -200,7 +203,7 @@ export async function generateStoryboardImage(
     }
 
     // Create data URL
-    const imageUrl = `data: image / svg + xml; charset = UTF - 8, ${encodeURIComponent(svg)} `;
+    const imageUrl = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 
     return {
         success: true,
