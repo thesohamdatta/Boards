@@ -396,7 +396,7 @@ export function ProjectWizard({ onComplete }: ProjectWizardProps) {
     try {
       // Create project in database
       const title = storyInput.slice(0, 50).split('\n')[0] || 'Untitled Project';
-      const project = await createProject(title, selectedGenre || undefined);
+      const project = await createProject(title, selectedGenre || undefined, undefined, storyInput);
       setProjectId(project.id);
       setWizardStep('generating');
     } catch (error) {

@@ -8,11 +8,12 @@ import { ShotList } from '@/components/storyboard/ShotList';
 import { StoryView } from '@/components/storyboard/StoryView';
 import { CharacterModal } from '@/components/storyboard/CharacterModal';
 import { SettingsModal } from '@/components/modals/SettingsModal';
+import { ExportModal } from '@/components/modals/ExportModal';
 import { Timeline } from '@/components/storyboard/Timeline';
 import { ProjectWizard } from '@/components/wizard/ProjectWizard';
 import { useStoryboardStore } from '@/stores/storyboardStore';
 import { useRequireAuth } from '@/hooks/useAuth';
-import { getProject, getScenes, getCharacters, getProjectFull } from '@/lib/api';
+import { getProject, getScenes, getCharacters, getProjectFull, getProjects } from '@/lib/api';
 import { toast } from 'sonner';
 
 export default function ProjectEditor() {
@@ -21,6 +22,7 @@ export default function ProjectEditor() {
   const { user, loading: authLoading } = useRequireAuth();
   const [loading, setLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const {
     activeView,
@@ -32,6 +34,8 @@ export default function ProjectEditor() {
     setShots,
     setCharacters,
     setCurrentProject,
+    setStoryInput,
+    setProjects,
   } = useStoryboardStore();
 
   const isNewProject = id === 'new';
@@ -52,13 +56,29 @@ export default function ProjectEditor() {
     try {
       setLoading(true);
 
-      // Load project
-      const project = await getProject(projectId);
+      // Refresh project list for sidebar
+      const allProjects = await getProjects();
+      const transformedProjects = allProjects.map(p => ({
+        id: p.id,
+        name: p.title,
+        genre: p.genre || undefined,
+        createdAt: new Date(p.created_at),
+        updatedAt: new Date(p.updated_at),
+        script_text: p.script_text,
+      }));
+      setProjects(transformedProjects);
+
+      // Load specific project
+      const project = allProjects.find(p => p.id === projectId);
       if (!project) {
         toast.error('Project not found');
         navigate('/app');
         return;
       }
+
+      // Important: set content BEFORE current project trigger if possible, 
+      // or ensure they are consistent in the same tick.
+      setStoryInput(project.script_text || '');
 
       setCurrentProject({
         id: project.id,
@@ -66,6 +86,7 @@ export default function ProjectEditor() {
         genre: project.genre || undefined,
         createdAt: new Date(project.created_at),
         updatedAt: new Date(project.updated_at),
+        script_text: project.script_text,
       });
 
       // Load scenes with shots
@@ -150,26 +171,7 @@ export default function ProjectEditor() {
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar
-          onExport={async () => {
-            if (id && id !== 'new') {
-              try {
-                const data = await getProjectFull(id);
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${data.project.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                toast.success('Project exported');
-              } catch (error: any) {
-                console.error(error);
-                toast.error('Failed to export project');
-              }
-            }
-          }}
+          onExport={() => setExportOpen(true)}
           onCharacterEditor={() => setIsCharacterModalOpen(true)}
           onSettings={() => setSettingsOpen(true)}
         />
@@ -196,6 +198,10 @@ export default function ProjectEditor() {
       <SettingsModal
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+      />
+      <ExportModal
+        open={exportOpen}
+        onOpenChange={setExportOpen}
       />
     </div>
   );

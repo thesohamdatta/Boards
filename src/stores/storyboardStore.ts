@@ -249,7 +249,7 @@ export const useStoryboardStore = create<StoryboardState>()(
       })),
     }),
     {
-      name: 'storyboard-storage',
+      name: 'boards-storage',
       partialize: (state) => ({
         projects: state.projects,
         currentProject: state.currentProject,

@@ -42,86 +42,91 @@ export function StoryboardPanel({
   return (
     <div
       className={cn(
-        'group overflow-hidden rounded-lg border bg-card transition-all cursor-pointer',
-        isSelected 
-          ? 'border-primary ring-2 ring-primary/20' 
-          : 'border-border hover:border-muted-foreground/30'
+        'group overflow-hidden rounded-[var(--radius-xl)] border bg-card transition-all duration-300 cursor-pointer shadow-1 hover:shadow-3',
+        isSelected
+          ? 'border-primary ring-2 ring-primary/20 scale-[1.02]'
+          : 'border-border/50 hover:border-primary/50'
       )}
       onClick={onClick}
     >
-      {/* Image */}
-      <div className="relative aspect-[16/10] overflow-hidden bg-muted">
-        {/* Video indicator */}
-        <div className="absolute left-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded bg-foreground/80">
-          <Video className="h-4 w-4 text-background" />
+      {/* Image Container */}
+      <div className="relative aspect-[16/10] overflow-hidden bg-muted/30">
+        {/* Video Type Indicator - MD3 Badge Style */}
+        <div className="absolute left-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-xl bg-black/60 border border-white/10 backdrop-blur-md">
+          <Video className="h-4 w-4 text-white" />
         </div>
-        
+
+        {/* Shot Number Indicator */}
+        <div className="absolute right-4 top-4 z-10 px-3 py-1 rounded-lg bg-primary/90 text-primary-foreground text-[10px] font-bold tracking-widest backdrop-blur-sm shadow-lg">
+          S{sceneNumber} · P{shot.shotNumber}
+        </div>
+
         <img
           src={shot.imageUrl || '/placeholder.svg'}
           alt={`Scene ${sceneNumber}, Shot ${shot.shotNumber}`}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
-        
+
         {/* Loading overlay */}
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 backdrop-blur-sm">
+            <Loader2 className="h-10 w-10 animate-spin text-primary mb-3" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Painting Shot...</span>
           </div>
         )}
-        
-        {/* Hover overlay */}
-        <div className="absolute inset-0 bg-foreground/40 opacity-0 transition-opacity group-hover:opacity-100" />
+
+        {/* Cinematic Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-end p-4">
+          <p className="text-white text-xs font-medium leading-relaxed line-clamp-2">
+            {shot.description}
+          </p>
+        </div>
       </div>
 
-      {/* Info */}
-      <div className="border-b border-border p-4">
-        <div className="mb-2 text-sm font-semibold text-foreground">
-          Scene: {sceneNumber} | Shot: {shot.shotNumber}
+      {/* Info Section - Clean & Minimal */}
+      <div className="p-4 border-b border-border/30 bg-card">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Visual Narrative</span>
+          <div className="flex gap-1">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary/30" />
+            <div className="h-1.5 w-1.5 rounded-full bg-primary/30" />
+          </div>
         </div>
         <p
-          className="line-clamp-3 text-sm leading-relaxed text-muted-foreground"
+          className="line-clamp-2 text-xs leading-relaxed text-foreground/90 font-medium"
           dangerouslySetInnerHTML={{ __html: highlightCharacters(shot.description) }}
         />
       </div>
 
-      {/* Actions - 2x2 grid matching reference */}
-      <div className="grid grid-cols-2">
+      {/* Modern Tonal Action Bar */}
+      <div className="grid grid-cols-4 bg-muted/20">
         <button
-          className="flex items-center justify-center gap-1.5 border-r border-b border-border bg-muted/50 px-3 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit?.();
-          }}
+          className="flex h-11 items-center justify-center text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary border-r border-border/20"
+          onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
+          title="Edit Details"
         >
-          EDIT
+          <Pencil className="h-4 w-4" />
         </button>
         <button
-          className="flex items-center justify-center gap-1.5 border-b border-border bg-muted/50 px-3 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRetry?.();
-          }}
+          className="flex h-11 items-center justify-center text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary border-r border-border/20"
+          onClick={(e) => { e.stopPropagation(); onRetry?.(); }}
+          title="Regenerate"
         >
-          <RefreshCw className="h-3 w-3" />
-          RETRY
+          <RefreshCw className="h-4 w-4" />
         </button>
         <button
-          className="flex items-center justify-center gap-1.5 border-r border-border bg-muted/50 px-3 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          onClick={(e) => {
-            e.stopPropagation();
-            onVariation?.();
-          }}
+          className="flex h-11 items-center justify-center text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary border-r border-border/20"
+          onClick={(e) => { e.stopPropagation(); onVariation?.(); }}
+          title="Generate Variation"
         >
-          VARIATION
+          <Shuffle className="h-4 w-4" />
         </button>
         <button
-          className="flex items-center justify-center gap-1.5 bg-muted/50 px-3 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          onClick={(e) => {
-            e.stopPropagation();
-            onUpload?.();
-          }}
+          className="flex h-11 items-center justify-center text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
+          onClick={(e) => { e.stopPropagation(); onUpload?.(); }}
+          title="Upload Reference"
         >
-          UPLOAD
+          <Upload className="h-4 w-4" />
         </button>
       </div>
     </div>

@@ -1,10 +1,11 @@
 import { useStoryboardStore } from '@/stores/storyboardStore';
 import { StoryboardPanel } from './StoryboardPanel';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Pencil, LayoutGrid, List, Loader2 } from 'lucide-react';
+import { Sparkles, Pencil, LayoutGrid, List, Loader2, Film } from 'lucide-react';
 import { useState } from 'react';
 import { generateStoryboard, generateShotImage, getScenes } from '@/lib/api';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export function StoryboardGrid() {
   const {
@@ -31,9 +32,7 @@ export function StoryboardGrid() {
       return;
     }
 
-    // Identify shots that need generation (missing images)
-    // Note: We filter locally based on current view state
-    const shotsToGenerate = shots.filter(s => !s.imageUrl || s.imageUrl.length < 50); // Simple check for missing/placeholder
+    const shotsToGenerate = shots.filter(s => !s.imageUrl || s.imageUrl.length < 50);
 
     if (shotsToGenerate.length === 0) {
       toast.info("All shots already have images. Use 'Retry' on specific shots to regenerate.");
@@ -46,10 +45,9 @@ export function StoryboardGrid() {
 
     try {
       let completedCount = 0;
+      let currentShots = [...shots];
 
       for (const shot of shotsToGenerate) {
-        // Check if we should stop (e.g. component unmount? - hard to check in loop without ref, but okay for now)
-
         const scene = getSceneForShot(shot.sceneId);
         if (!scene) continue;
 
@@ -69,19 +67,17 @@ export function StoryboardGrid() {
           );
 
           if (result.success) {
-            // Update state IMMEDIATELY for this single shot
-            setShots(prev => prev.map(s => s.id === shot.id ? {
+            currentShots = currentShots.map(s => s.id === shot.id ? {
               ...s,
               imageUrl: result.panel.image_url,
               promptUsed: result.panel.prompt_used
-            } : s));
-
+            } : s);
+            setShots(currentShots);
             completedCount++;
           }
         } catch (err) {
           console.error(`Error generating shot ${shot.id}`, err);
         } finally {
-          // Remove from loading set
           setGeneratingShots(prev => {
             const next = new Set(prev);
             next.delete(shot.id);
@@ -97,7 +93,7 @@ export function StoryboardGrid() {
       toast.error(message);
     } finally {
       setIsGenerating(false);
-      setGeneratingShots(new Set()); // Ensure clear
+      setGeneratingShots(new Set());
     }
   };
 
@@ -120,18 +116,18 @@ export function StoryboardGrid() {
         shot.cameraAngle,
         shot.shotSize,
         characterList,
-        'sketch', // Default style, could come from settings
-        '16:9',   // Default aspect ratio, could come from settings
-        settings.aiModel // Pass the model from settings!
+        settings.imageStyle,
+        '16:9',
+        settings.aiModel
       );
 
       if (result.success) {
-        // Update shot with new image
-        setShots(shots.map(s =>
+        const updatedShots = shots.map(s =>
           s.id === shotId
             ? { ...s, imageUrl: result.panel.image_url, promptUsed: result.panel.prompt_used }
             : s
-        ));
+        );
+        setShots(updatedShots);
         toast.success('Shot regenerated');
       }
     } catch (error) {
@@ -147,62 +143,73 @@ export function StoryboardGrid() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-background p-8">
-      {/* Controls */}
-      <div className="mb-8 flex items-center justify-center gap-4">
-        <Button
-          className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-medium"
-          onClick={handleGenerateStoryboard}
-          disabled={isGenerating || shots.length === 0}
-        >
-          {isGenerating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          {isGenerating ? 'Generating...' : 'Generate Storyboard'}
-        </Button>
-        <Button variant="outline" className="gap-2 border-border">
-          <Pencil className="h-4 w-4" />
-          Change Art Style
-        </Button>
+    <div className="flex-1 overflow-y-auto surface-dim p-10 custom-scrollbar">
+      {/* Cinematic Controls */}
+      <div className="mb-12 flex flex-col items-center gap-6">
+        <div className="flex items-center gap-3">
+          <button
+            className="btn-filled group h-14 px-8 shadow-xl shadow-primary/20"
+            onClick={handleGenerateStoryboard}
+            disabled={isGenerating || shots.length === 0}
+          >
+            {isGenerating ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Sparkles className="h-5 w-5 transition-transform group-hover:rotate-12" />
+            )}
+            <span className="text-base font-bold tracking-tight">
+              {isGenerating ? 'Directing AI...' : 'Generate Full Storyboard'}
+            </span>
+          </button>
+
+          <button className="btn-tonal h-14 px-6 border border-border/50">
+            <Pencil className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold">Visual Style: {settings.imageStyle}</span>
+          </button>
+        </div>
+
+        {/* MD3 Tonal Segmented Control */}
+        <div className="flex items-center gap-1 rounded-full bg-muted/30 p-1.5 border border-border/50 backdrop-blur-sm">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={cn(
+              "flex items-center justify-center h-10 w-14 rounded-full transition-all",
+              viewMode === 'grid' ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutGrid className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={cn(
+              "flex items-center justify-center h-10 w-14 rounded-full transition-all",
+              viewMode === 'list' ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <List className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
-      {/* View toggle */}
-      <div className="mb-6 flex items-center justify-center gap-1 rounded-lg bg-muted p-1">
-        <button
-          onClick={() => setViewMode('grid')}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${viewMode === 'grid'
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          <LayoutGrid className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => setViewMode('list')}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${viewMode === 'list'
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          <List className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Grid */}
+      {/* Main Canvas Area */}
       {shots.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="mb-4 rounded-full bg-muted p-4">
-            <LayoutGrid className="h-8 w-8 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-32 text-center max-w-md mx-auto">
+          <div className="mb-8 relative">
+            <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
+            <div className="relative h-20 w-20 flex items-center justify-center rounded-3xl bg-secondary border border-border/50 shadow-2">
+              <Film className="h-10 w-10 text-primary" />
+            </div>
           </div>
-          <h3 className="mb-2 text-lg font-medium text-foreground">No storyboard panels yet</h3>
-          <p className="text-sm text-muted-foreground">
-            Generate your storyboard to see panels here
+          <h2 className="mb-3 text-2xl font-bold tracking-tight text-foreground">Awaiting your vision</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Your storyboard is empty. Head over to the <span className="text-primary font-bold">Story</span> tab to draft your script, then return here to bring it to life.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={cn(
+          "grid gap-8 p-2",
+          viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1 max-w-4xl mx-auto"
+        )}>
           {shots.map((shot) => {
             const scene = getSceneForShot(shot.sceneId);
             const isRegenerating = generatingShots.has(shot.id);

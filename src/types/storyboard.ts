@@ -4,6 +4,7 @@ export interface Project {
   genre?: string;
   createdAt: Date;
   updatedAt: Date;
+  script_text?: string | null;
 }
 
 export interface Character {

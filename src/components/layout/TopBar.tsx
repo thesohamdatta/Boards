@@ -46,10 +46,10 @@ export function TopBar({ onExport, onCharacterEditor, onSettings }: TopBarProps)
   };
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-sidebar-border bg-sidebar px-4 text-sidebar-foreground">
-      <div className="flex items-center gap-3">
+    <header className="flex h-20 items-center justify-between border-b border-border/20 bg-background/50 px-8 backdrop-blur-xl z-10">
+      <div className="flex items-center gap-6">
         {isEditing ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-muted/20 p-1.5 rounded-2xl border border-border/30 shadow-inner">
             <Input
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
@@ -57,79 +57,94 @@ export function TopBar({ onExport, onCharacterEditor, onSettings }: TopBarProps)
                 if (e.key === 'Enter') handleSaveName();
                 if (e.key === 'Escape') handleCancelEdit();
               }}
-              className="h-8 w-64 bg-sidebar-accent border-sidebar-border"
+              className="h-10 w-80 bg-transparent border-0 focus-visible:ring-0 text-lg font-black tracking-tight"
               autoFocus
             />
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              onClick={handleSaveName}
-            >
-              <Check className="h-4 w-4 text-green-500" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              onClick={handleCancelEdit}
-            >
-              <X className="h-4 w-4 text-red-500" />
-            </Button>
+            <div className="flex gap-1.5 pr-1.5">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 rounded-xl hover:bg-primary/20 hover:text-primary transition-all"
+                onClick={handleSaveName}
+              >
+                <Check className="h-5 w-5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 rounded-xl hover:bg-destructive/20 hover:text-destructive transition-all"
+                onClick={handleCancelEdit}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         ) : (
-          <>
-            <h1 className="text-lg font-semibold text-sidebar-foreground">{currentProject.name}</h1>
-            <button
-              onClick={() => setIsEditing(true)}
-              className="rounded p-1 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-          </>
+          <div className="flex items-center gap-3 group">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-black tracking-tighter text-foreground uppercase leading-none">{currentProject.name}</h1>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="rounded-xl p-2 text-muted-foreground opacity-20 group-hover:opacity-100 hover:bg-primary/10 hover:text-primary transition-all"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="h-1 w-8 rounded-full bg-gradient-to-r from-primary to-accent" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Active Project Architecture</span>
+              </div>
+            </div>
+          </div>
         )}
         {currentProject.genre && (
-          <Badge className="bg-sidebar-accent text-sidebar-foreground/80 text-xs border-0">
+          <Badge variant="secondary" className="px-4 py-1 rounded-full font-black text-[9px] uppercase tracking-[0.1em] bg-primary/10 text-primary border border-primary/20 shadow-sm ml-2">
             {currentProject.genre}
           </Badge>
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onCharacterEditor}
-          className="gap-2 border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-        >
-          <Users className="h-4 w-4" />
-          Characters
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleShare}
-          className="gap-2 border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-        >
-          <Share2 className="h-4 w-4" />
-          Share
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onExport}
-          className="gap-2 border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-        >
-          <Download className="h-4 w-4" />
-          Export
-        </Button>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5 bg-muted/20 p-1.5 rounded-2xl border border-border/20">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCharacterEditor}
+            className="h-10 gap-2.5 rounded-xl px-5 text-xs font-black uppercase tracking-widest hover:bg-background/80 hover:text-primary hover:shadow-sm transition-all"
+          >
+            <Users className="h-4 w-4" />
+            Cast
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleShare}
+            className="h-10 gap-2.5 rounded-xl px-5 text-xs font-black uppercase tracking-widest hover:bg-background/80 hover:text-primary hover:shadow-sm transition-all"
+          >
+            <Share2 className="h-4 w-4" />
+            Distribute
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onExport}
+            className="h-10 gap-2.5 rounded-xl px-5 text-xs font-black uppercase tracking-widest hover:bg-background/80 hover:text-primary hover:shadow-sm transition-all"
+          >
+            <Download className="h-4 w-4" />
+            Produce
+          </Button>
+        </div>
+
+        <div className="h-10 w-px bg-border/20 mx-1" />
+
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          className="h-12 w-12 rounded-2xl text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all border border-transparent hover:border-primary/20"
           onClick={onSettings}
         >
-          <Settings className="h-4 w-4" />
+          <Settings className="h-5 w-5" />
         </Button>
       </div>
     </header>

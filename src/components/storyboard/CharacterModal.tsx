@@ -70,158 +70,165 @@ export function CharacterModal({ open, onOpenChange }: CharacterModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-card border-border">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-4 text-foreground">
-            Your Characters
-            {currentProject && (
-              <span className="rounded border border-border px-2 py-0.5 text-sm font-normal text-muted-foreground">
-                {currentProject.name}
-              </span>
+      <DialogContent className="max-w-3xl bg-card border-border/50 shadow-3 rounded-[var(--radius-xl)] p-0 overflow-hidden">
+        <DialogHeader className="p-8 pb-0 flex flex-row items-center justify-between">
+          <div className="space-y-1">
+            <DialogTitle className="text-2xl font-black tracking-tight text-foreground uppercase">
+              Cast & Characters
+            </DialogTitle>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary/80">
+              {currentProject?.name || "Global Assets"}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            {!selectedCharacter && (
+              <button
+                onClick={handleAddNew}
+                className="btn-filled h-10 px-4 text-xs"
+              >
+                <Plus className="h-4 w-4" />
+                Add Actor
+              </button>
             )}
-          </DialogTitle>
+          </div>
         </DialogHeader>
 
-        {!selectedCharacter ? (
-          // Character Grid
-          <div className="grid grid-cols-4 gap-4">
-            {characters.map((char) => (
+        <div className="p-8 pt-6">
+          {!selectedCharacter ? (
+            // Character Grid
+            <div className="grid grid-cols-4 gap-4">
+              {characters.map((char) => (
+                <div
+                  key={char.id}
+                  className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border/30 bg-muted/20 p-2 transition-all duration-300 hover:border-primary/50 hover:shadow-lg"
+                  onClick={() => handleSelectCharacter(char)}
+                >
+                  <div className="mb-3 aspect-square overflow-hidden rounded-xl border border-border/20 shadow-inner">
+                    <img
+                      src={char.imageUrl || '/placeholder.svg'}
+                      alt={char.name}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  </div>
+                  <div className="px-1 pb-1">
+                    <p className="truncate text-xs font-black uppercase tracking-widest text-foreground/80">{char.name}</p>
+                    <p className="truncate text-[10px] text-muted-foreground/60 font-medium">{char.description}</p>
+                  </div>
+
+                  {/* Quick Action Overlay */}
+                  <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                    <div className="bg-white/90 backdrop-blur-sm p-3 rounded-full shadow-xl">
+                      <Pencil className="h-4 w-4 text-primary" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Add New Block */}
               <div
-                key={char.id}
-                className="cursor-pointer rounded-lg border border-border bg-card p-2 transition-colors hover:border-link"
-                onClick={() => handleSelectCharacter(char)}
+                className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/30 bg-muted/5 p-4 transition-all duration-300 hover:border-primary/50 hover:bg-primary/5"
+                onClick={handleAddNew}
               >
-                <div className="mb-2 aspect-square overflow-hidden rounded bg-muted">
+                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-3">
+                  <Plus className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">New Actor</p>
+              </div>
+            </div>
+          ) : (
+            // Character Detail View
+            <div className="flex gap-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* Image & Controls */}
+              <div className="w-56 flex-shrink-0">
+                <div className="group relative mb-6 aspect-square overflow-hidden rounded-3xl border border-border/30 bg-muted ring-4 ring-primary/10 shadow-2">
                   <img
-                    src={char.imageUrl || '/placeholder.svg'}
-                    alt={char.name}
+                    src={selectedCharacter.imageUrl || '/placeholder.svg'}
+                    alt={selectedCharacter.name}
                     className="h-full w-full object-cover"
                   />
-                </div>
-                <p className="truncate text-center text-sm font-medium text-foreground">{char.name}</p>
-                <div className="mt-2 flex justify-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <RefreshCw className="h-3 w-3" />
-                  </Button>
-                  <Button variant="secondary" size="sm" className="h-6 text-xs">
-                    EDIT
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-
-            {/* Add New */}
-            <div
-              className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border p-2 transition-colors hover:border-link"
-              onClick={handleAddNew}
-            >
-              <Plus className="mb-2 h-8 w-8 text-muted-foreground" />
-              <p className="text-sm font-medium text-foreground">Add New</p>
-              <Button variant="secondary" size="sm" className="mt-2 h-6 text-xs">
-                Add
-              </Button>
-            </div>
-          </div>
-        ) : (
-          // Character Detail View
-          <div className="flex gap-6">
-            {/* Image */}
-            <div className="w-48 flex-shrink-0">
-              <div className="mb-4 aspect-square overflow-hidden rounded-lg bg-muted ring-2 ring-link ring-offset-2">
-                <img
-                  src={selectedCharacter.imageUrl || '/placeholder.svg'}
-                  alt={selectedCharacter.name}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1 gap-1">
-                  <RefreshCw className="h-3 w-3" />
-                  RETRY
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1 gap-1">
-                  <Upload className="h-3 w-3" />
-                  UPLOAD
-                </Button>
-              </div>
-            </div>
-
-            {/* Form */}
-            <div className="flex-1 space-y-4">
-              <div className="rounded-lg bg-muted p-4">
-                <h4 className="mb-2 text-sm font-medium text-foreground">Character Settings</h4>
-                <p className="mb-3 text-sm text-muted-foreground">
-                  How should this character appear in your storyboard?
-                </p>
-                <RadioGroup defaultValue="description">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="description" id="description" />
-                    <Label htmlFor="description" className="text-foreground">Based on description reference</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="image" id="image" />
-                    <Label htmlFor="image" className="text-foreground">Based on image reference</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div>
-                <h3 className="mb-4 text-lg font-semibold text-foreground">{selectedCharacter.name}</h3>
-
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-foreground">Name</Label>
-                    <Input
-                      value={isEditing ? editForm.name : selectedCharacter.name}
-                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                      disabled={!isEditing}
-                      className="bg-background border-border"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-foreground">Description or Lookalike</Label>
-                    <Textarea
-                      value={isEditing ? editForm.description : selectedCharacter.description}
-                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                      disabled={!isEditing}
-                      rows={3}
-                      className="bg-background border-border"
-                    />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {(isEditing ? editForm.description : selectedCharacter.description).length}/300
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4">
-                <button
-                  className="text-sm text-link hover:underline"
-                  onClick={() => setSelectedCharacter(null)}
-                >
-                  ← Character List
-                </button>
-                {isEditing ? (
-                  <Button onClick={handleSave} className="bg-primary text-primary-foreground">SAVE</Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleDelete}>
-                      <Trash2 className="mr-1 h-4 w-4" />
-                      Delete
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-white/20 hover:bg-white text-white hover:text-primary">
+                      <RefreshCw className="h-5 w-5" />
                     </Button>
-                    <Button onClick={handleEdit} className="bg-primary text-primary-foreground">
-                      <Pencil className="mr-1 h-4 w-4" />
-                      Edit
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-white/20 hover:bg-white text-white hover:text-primary">
+                      <Upload className="h-5 w-5" />
                     </Button>
                   </div>
-                )}
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/20">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">Guidance Mode</h4>
+                    <RadioGroup defaultValue="description" className="gap-3">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="description" id="description" className="border-primary text-primary" />
+                        <Label htmlFor="description" className="text-xs font-medium cursor-pointer">Semantic Description</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="image" id="image" className="border-primary text-primary" />
+                        <Label htmlFor="image" className="text-xs font-medium cursor-pointer">Visual Reference</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form & Actions */}
+              <div className="flex-1 flex flex-col justify-between">
+                <div className="space-y-8">
+                  <div className="grid gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Identity</Label>
+                      <Input
+                        value={isEditing ? editForm.name : selectedCharacter.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        disabled={!isEditing}
+                        className="h-12 border-border/50 bg-background/50 px-5 text-lg font-bold tracking-tight focus-visible:ring-primary/20"
+                        placeholder="Character Name..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Physical Description & Vibe</Label>
+                      <Textarea
+                        value={isEditing ? editForm.description : selectedCharacter.description}
+                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                        disabled={!isEditing}
+                        rows={5}
+                        className="border-border/50 bg-background/50 p-5 leading-relaxed text-sm font-medium focus-visible:ring-primary/20 resize-none"
+                        placeholder="Tall, brooding, wears a dark trench coat..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-8 border-t border-border/20 mt-8">
+                  <button
+                    className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setSelectedCharacter(null)}
+                  >
+                    <Plus className="h-4 w-4 rotate-45" /> Back to Cast
+                  </button>
+                  {isEditing ? (
+                    <div className="flex gap-3">
+                      <Button variant="ghost" onClick={() => setIsEditing(false)} className="rounded-xl px-6">CANCEL</Button>
+                      <Button onClick={handleSave} className="btn-filled px-8 shadow-primary/20">CONFIRM CHANGES</Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button variant="ghost" onClick={handleDelete} className="h-11 px-5 rounded-xl text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button onClick={handleEdit} className="btn-tonal h-11 px-8 rounded-xl">
+                        <Pencil className="mr-2 h-4 w-4" />
+                        MODIFY ACTOR
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

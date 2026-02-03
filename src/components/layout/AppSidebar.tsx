@@ -38,142 +38,115 @@ export function AppSidebar({ onNewProject }: AppSidebarProps) {
 
   return (
     <>
-      <aside className="flex h-screen w-64 flex-col bg-sidebar text-sidebar-foreground">
-        {/* Logo */}
-        <div className="flex items-center gap-2 border-b border-sidebar-border px-4 py-4">
-          <div className="flex items-center gap-1">
-            <div className="grid grid-cols-2 gap-0.5">
-              <div className="h-2 w-2 bg-sidebar-foreground" />
-              <div className="h-2 w-2 bg-sidebar-foreground" />
-              <div className="h-2 w-2 bg-sidebar-foreground" />
-              <div className="h-2 w-2 bg-sidebar-foreground" />
-            </div>
-            <span className="font-semibold text-sidebar-foreground">story</span>
+      <aside className="flex h-screen w-80 flex-col bg-background/40 border-r border-border/10 backdrop-blur-2xl z-20">
+        {/* Branding - High End Cinematic Logotype */}
+        <div className="flex items-center gap-4 px-8 py-10">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-primary/80 to-accent shadow-xl shadow-primary/20 ring-1 ring-white/10">
+            <Film className="h-6 w-6 text-primary-foreground" />
           </div>
-          <span className="text-sidebar-foreground/60">boarder</span>
-          <span className="text-sidebar-primary font-medium">.ai</span>
+          <div className="flex flex-col">
+            <span className="text-xl font-black tracking-tighter text-foreground uppercase leading-none">Boards</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary mt-1">Studio Architecture</span>
+          </div>
         </div>
 
-        {/* Your Storyboards Button */}
-        <div className="p-4">
-          <Button
+        {/* Action: New Narrative Persistence */}
+        <div className="px-6 mb-8">
+          <button
             onClick={onNewProject}
-            className="w-full justify-start gap-2 bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 font-medium"
+            className="group relative flex w-full items-center justify-center gap-3 rounded-[24px] bg-primary px-6 py-5 text-primary-foreground shadow-2xl shadow-primary/30 hover:shadow-primary/40 hover:scale-[1.02] transition-all overflow-hidden"
           >
-            <Grid3X3 className="h-4 w-4" />
-            Your Storyboards
-          </Button>
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            <Plus className="h-5 w-5 transition-transform group-hover:rotate-90" />
+            <span className="font-black text-xs uppercase tracking-widest">Construct New Narrative</span>
+          </button>
         </div>
 
-        {/* Search */}
-        <div className="px-4 pb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sidebar-foreground/50" />
-            <Input
-              placeholder="Search..."
-              className="pl-9 bg-sidebar-accent border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50"
-            />
-          </div>
+        {/* Main Logic: Workspace Control */}
+        <div className="px-6 mb-10">
+          <p className="px-4 mb-4 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Workspace Modules</p>
+          <nav className="space-y-1.5">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => currentProject && setActiveView(item.id)}
+                disabled={!currentProject}
+                className={cn(
+                  'flex w-full items-center gap-4 rounded-2xl px-5 py-4 text-[11px] font-black uppercase tracking-widest transition-all border border-transparent',
+                  !currentProject ? 'opacity-20 cursor-not-allowed' : 'hover:bg-muted/30 hover:border-border/10',
+                  activeView === item.id && currentProject
+                    ? 'bg-primary/10 text-primary border-primary/20 shadow-sm shadow-primary/5'
+                    : 'text-muted-foreground/80'
+                )}
+              >
+                <item.icon className={cn("h-4 w-4 transition-colors", activeView === item.id && currentProject ? "text-primary" : "text-muted-foreground/50")} />
+                {item.label}
+              </button>
+            ))}
+          </nav>
         </div>
 
-        {/* Storyboards Section */}
-        <div className="flex-1 overflow-y-auto px-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium text-sidebar-foreground/60">Storyboards</span>
-            <button
-              onClick={onNewProject}
-              className="rounded p-1 hover:bg-sidebar-accent"
-            >
-              <Plus className="h-4 w-4 text-sidebar-foreground/60" />
-            </button>
+        {/* Persistence: Recently Orchestrated */}
+        <div className="flex-1 overflow-y-auto px-6 custom-scrollbar pb-6">
+          <div className="flex items-center justify-between px-4 mb-4">
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Recent Orchestration</span>
           </div>
 
           {projects.length === 0 ? (
-            <p className="text-sm text-sidebar-foreground/50 py-2">No projects yet</p>
+            <div className="px-6 py-10 text-center rounded-3xl bg-muted/10 border border-dashed border-border/20">
+              <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">Vault is Vacant</p>
+            </div>
           ) : (
-            <ul className="space-y-1">
+            <div className="space-y-2">
               {projects.map((project) => (
-                <li key={project.id}>
-                  <button
-                    className={cn(
-                      'w-full truncate rounded px-2 py-1.5 text-left text-sm transition-colors',
-                      currentProject?.id === project.id
-                        ? 'bg-sidebar-accent text-sidebar-foreground'
-                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                    )}
-                  >
-                    {project.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {/* Navigation when in project */}
-          {currentProject && (
-            <nav className="mt-6 space-y-1">
-              {navItems.map((item) => (
                 <button
-                  key={item.id}
-                  onClick={() => setActiveView(item.id)}
+                  key={project.id}
                   className={cn(
-                    'flex w-full items-center gap-3 rounded px-2 py-2 text-sm transition-colors',
-                    activeView === item.id
-                      ? 'bg-sidebar-accent text-sidebar-foreground border-l-2 border-sidebar-primary'
-                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                    'group flex w-full items-center gap-4 rounded-2xl px-5 py-4 text-left transition-all border',
+                    currentProject?.id === project.id
+                      ? 'bg-muted/30 text-foreground border-border/30 shadow-sm'
+                      : 'text-muted-foreground/80 hover:text-foreground hover:bg-muted/10 border-transparent hover:border-border/10'
                   )}
                 >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
+                  <div className={cn(
+                    "h-1.5 w-1.5 rounded-full shadow-[0_0_8px_rgba(var(--primary),0.5)] transition-all",
+                    currentProject?.id === project.id ? "bg-primary scale-[2]" : "bg-muted-foreground/30"
+                  )} />
+                  <span className="truncate flex-1 text-xs font-bold leading-none">{project.name}</span>
                 </button>
               ))}
-            </nav>
+            </div>
           )}
         </div>
 
-        {/* Bottom Nav */}
-        <div className="border-t border-sidebar-border p-4">
-          <nav className="space-y-1">
-            <button
-              onClick={() => setTutorialsOpen(true)}
-              className="flex w-full items-center gap-3 rounded px-2 py-2 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              <HelpCircle className="h-4 w-4" />
-              Tutorials
-            </button>
-            <button
-              onClick={() => setArchivedOpen(true)}
-              className="flex w-full items-center gap-3 rounded px-2 py-2 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              <Archive className="h-4 w-4" />
-              Archived
-            </button>
-            <button
-              onClick={() => setAccountOpen(true)}
-              className="flex w-full items-center gap-3 rounded px-2 py-2 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              <User className="h-4 w-4" />
-              Account
-            </button>
-            <button
-              onClick={() => setSettingsOpen(true)}
-              className="flex w-full items-center gap-3 rounded px-2 py-2 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </button>
-            <button
-              onClick={handleSignOut}
-              className="flex w-full items-center gap-3 rounded px-2 py-2 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </button>
-          </nav>
+        {/* Admin: Production Controls */}
+        <div className="p-6 mt-auto border-t border-border/10 bg-background/20 backdrop-blur-3xl">
+          <div className="grid grid-cols-5 gap-2">
+            {[
+              { icon: Settings, action: () => setSettingsOpen(true), color: 'primary' },
+              { icon: HelpCircle, action: () => setTutorialsOpen(true), color: 'primary' },
+              { icon: Archive, action: () => setArchivedOpen(true), color: 'primary' },
+              { icon: User, action: () => setAccountOpen(true), color: 'primary' },
+              { icon: LogOut, action: handleSignOut, color: 'destructive' },
+            ].map((tool, i) => (
+              <button
+                key={i}
+                onClick={tool.action}
+                className={cn(
+                  "flex h-11 items-center justify-center rounded-xl transition-all border border-transparent",
+                  tool.color === 'destructive'
+                    ? "text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20"
+                    : "text-muted-foreground/60 hover:bg-primary/10 hover:text-primary hover:border-primary/20"
+                )}
+              >
+                <tool.icon className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
         </div>
       </aside>
 
-      {/* Modals */}
+      {/* Modals remain the same but will pick up global CSS changes */}
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
       <AccountModal open={accountOpen} onOpenChange={setAccountOpen} />
       <TutorialsModal open={tutorialsOpen} onOpenChange={setTutorialsOpen} />

@@ -72,11 +72,11 @@ export interface StoryboardPanel {
 
 // Storage keys
 const KEYS = {
-  PROJECTS: 'scene_weaver_projects',
-  SCENES: 'scene_weaver_scenes',
-  SHOTS: 'scene_weaver_shots',
-  CHARACTERS: 'scene_weaver_characters',
-  PANELS: 'scene_weaver_panels'
+  PROJECTS: 'boards_projects',
+  SCENES: 'boards_scenes',
+  SHOTS: 'boards_shots',
+  CHARACTERS: 'boards_characters',
+  PANELS: 'boards_panels'
 };
 
 // Generic get/set
@@ -100,7 +100,7 @@ const saveList = <T>(key: string, list: T[]) => {
 
 // ============= PROJECT API =============
 
-export async function createProject(title: string, genre?: string, aspectRatio?: string) {
+export async function createProject(title: string, genre?: string, aspectRatio?: string, scriptText?: string) {
   await delay(100);
   const projects = getList<Project>(KEYS.PROJECTS);
   const newProject: Project = {
@@ -109,7 +109,7 @@ export async function createProject(title: string, genre?: string, aspectRatio?:
     title: title || "Untitled",
     genre: genre || null,
     aspect_ratio: aspectRatio || "16:9",
-    script_text: null,
+    script_text: scriptText || null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };

@@ -1,130 +1,197 @@
+import { useState, useRef, useEffect } from 'react';
 import { useStoryboardStore } from '@/stores/storyboardStore';
 import { Button } from '@/components/ui/button';
-import { Bold, Italic, Underline, Search, Undo, Redo, Sparkles } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Bold, Italic, Underline, Search, Undo, Redo, Sparkles, Loader2, FileText } from 'lucide-react';
+import { generateWithGemini } from '@/lib/gemini-client';
+import { updateProject } from '@/lib/api';
+import { toast } from 'sonner';
 
 export function StoryView() {
-  const { storyInput, setStoryInput } = useStoryboardStore();
+  const { storyInput, setStoryInput, currentProject } = useStoryboardStore();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const sampleScreenplay = `1 INT. HIGH-RISE SOCIAL ROOM – NIGHT
+  // Auto-save script changes
+  useEffect(() => {
+    if (!currentProject?.id) return;
 
-Night presses against the glass walls, the city seventy-one stories below a dead grid of sodium light. TYLER, blond hair sweat-plastered, eyes blazing, wrestles with JACK on the polished floor, a SUPPRESSED HANDGUN jammed between Jack's teeth, forcing his head back to the window.
+    const timeoutId = setTimeout(async () => {
+      try {
+        setIsSaving(true);
+        await updateProject(currentProject.id, { script_text: storyInput });
+        setIsSaving(false);
+      } catch (error) {
+        console.error('Failed to auto-save script:', error);
+        setIsSaving(false);
+      }
+    }, 2000); // Save after 2 seconds of inactivity
 
-Jack, bruised and exhausted, gags and mumbles broken vowels around the metal, fingers clawing at Tyler's wrist as his VOICEOVER calmly dissects how a barrel in your mouth makes consonants impossible, how he can taste the drilled holes in the silencer.
+    return () => clearTimeout(timeoutId);
+  }, [storyInput, currentProject?.id]);
 
-                              TYLER
-              We won't really die. We'll be immortal.
+  const handleGenerate = async () => {
+    try {
+      setIsGenerating(true);
+      toast.loading('Generating screenplay...');
 
-He glances at his watch with manic conviction. Jack forces out a slurred reply past the gun.
+      const prompt = storyInput.trim()
+        ? `Continue the following screenplay in standard industry format (Fountain/Markdown). Maintain the tone and characters.
+        
+        Current Script:
+        ${storyInput.slice(-2000)}` // Context window
+        : `Write a compelling opening scene for a movie screenplay in standard industry format (Fountain/Markdown). Include Scene Heading, Action, Character, and Dialogue.`;
 
-                              JACK
-              You're thinking of vampires.
+      const result = await generateWithGemini({
+        prompt,
+        temperature: 0.7,
+        modelName: 'gemini-2.0-flash' // Use a fast, capable model
+      });
 
-Tyler shoves him harder into the glass, twisting Jack's head so he's staring straight down the sheer drop. They lunge, SLAM into a table, sending it crashing, the gun skittering away as Jack's VOICEOVER drifts into clinical instructions on nitroglycerin and the building's demolition layout.
+      toast.dismiss();
 
-Both men dive; Tyler snatches the gun first, drags Jack back to the window, barrel back in his mouth, hissing in his ear.
+      if (result.success) {
+        const newContent = storyInput.trim()
+          ? `${storyInput}\n\n${result.text}`
+          : result.text;
 
-                              TYLER
-              This is our world now. Two minutes.
+        setStoryInput(newContent);
+        toast.success('Screenplay generated!');
+      } else {
+        // Explicitly cast or check to satisfy TS if narrowing fails
+        const errorMessage = 'error' in result ? result.error : 'Unknown error';
+        toast.error(`Generation failed: ${errorMessage}`);
+      }
+    } catch (error) {
+      toast.dismiss();
+      toast.error('Failed to generate screenplay');
+      console.error(error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
-                                                         CUT TO:
+  const insertText = (before: string, after: string = '') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
-2 INT. HIGH SCHOOL GYMNASIUM – NIGHT
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selection = text.substring(start, end);
 
-Fluorescent gloom washes a cavernous gym, air thick with sour sweat and disinfectant. Folding chairs form loose circles beneath a hand-lettered banner: "REMAINING MEN TOGETHER." Clusters of MEN cling to each other, weeping, murmuring about surgeries and lost futures.
+    const newText = text.substring(0, start) + before + selection + after + text.substring(end);
+    setStoryInput(newText);
 
-JACK's face is mashed into the vast, sweaty chest of BOB, whose massive arms enfold him in a crushing embrace.`;
+    // Restore focus and selection
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + before.length, end + before.length);
+    }, 0);
+  };
+
+  const handleHeadingSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (!value) return;
+
+    switch (value) {
+      case 'Scene Heading':
+        insertText('\n\nINT. LOCATION - DAY\n');
+        break;
+      case 'Action':
+        insertText('\n', '\n');
+        break;
+      case 'Character':
+        insertText('\n\nCHARACTER NAME\n');
+        break;
+      case 'Dialogue':
+        insertText('\n(parenthetical)\n');
+        break;
+    }
+    // Reset select
+    e.target.value = '';
+  };
 
   return (
-    <div className="flex flex-1 flex-col bg-background p-8">
+    <div className="flex flex-1 flex-col bg-transparent p-6 gap-6 overflow-hidden">
       {/* Top controls */}
-      <div className="mb-6 flex items-center justify-between">
-        {/* Tab switcher */}
-        <div className="inline-flex rounded-lg bg-muted p-1">
-          <Button variant="secondary" size="sm" className="bg-card text-foreground shadow-sm">
+      <div className="flex items-center justify-between">
+        {/* Tab switcher - MD3 Tonal Pill */}
+        <div className="inline-flex rounded-2xl bg-muted/30 p-1.5 border border-border/50">
+          <button className="flex items-center gap-2 px-6 py-2 rounded-xl bg-card text-foreground shadow-sm font-semibold text-sm transition-all">
+            <FileText className="h-4 w-4 text-primary" />
             Screenplay
-          </Button>
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            Shotlist
-          </Button>
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            Storyboard
-          </Button>
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            Export
-          </Button>
+          </button>
+          <button className="flex items-center gap-2 px-6 py-2 rounded-xl text-muted-foreground font-medium text-sm hover:text-foreground transition-all" disabled>
+            Notes
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">Soon</span>
+          </button>
         </div>
 
-        <Button className="gap-2 bg-sidebar text-sidebar-foreground hover:bg-sidebar/90">
-          <Sparkles className="h-4 w-4" />
-          Generate Screenplay
-        </Button>
+        <button
+          className="btn-filled group"
+          onClick={handleGenerate}
+          disabled={isGenerating}
+        >
+          {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 transition-transform group-hover:rotate-12" />}
+          <span className="tracking-tight">{isGenerating ? 'Drafting...' : 'Magic Write'}</span>
+        </button>
       </div>
 
-      {/* Toolbar */}
-      <div className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-card p-2">
-        <select className="rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground">
-          <option>Choose heading</option>
-          <option>Scene Heading</option>
-          <option>Action</option>
-          <option>Character</option>
-          <option>Dialogue</option>
-        </select>
-        <div className="h-6 w-px bg-border" />
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <Bold className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <Italic className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <Underline className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <Search className="h-4 w-4" />
-        </Button>
-        <div className="h-6 w-px bg-border" />
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <Undo className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <Redo className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* Editor Surface */}
+      <div className="flex-1 flex flex-col min-h-0 bg-card rounded-[var(--radius-xl)] shadow-3 border border-border/50 overflow-hidden">
+        {/* Toolbar */}
+        <div className="flex items-center gap-1.5 p-3 border-b border-border/50 bg-background/20 backdrop-blur-sm">
+          <select
+            className="rounded-full border border-border/50 bg-muted/50 px-5 py-2 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all appearance-none cursor-pointer hover:bg-muted"
+            onChange={handleHeadingSelect}
+            defaultValue=""
+          >
+            <option value="" disabled>FORMATTING</option>
+            <option value="Scene Heading">SCENE HEADING</option>
+            <option value="Action">ACTION</option>
+            <option value="Character">CHARACTER</option>
+            <option value="Dialogue">DIALOGUE</option>
+          </select>
 
-      {/* Editor */}
-      <div className="flex-1 overflow-y-auto rounded-lg border border-border bg-card px-12 py-8">
-        <div className="mx-auto max-w-3xl">
-          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground">
-            <span className="text-primary font-semibold">1</span> <span className="text-primary font-bold">INT. HIGH-RISE SOCIAL ROOM – NIGHT</span>
-            {`
+          <div className="h-6 w-px bg-border/50 mx-2" />
 
-Night presses against the glass walls, the city seventy-one stories below a dead grid of sodium light. `}<span className="text-primary font-medium">TYLER</span>{`, blond hair sweat-plastered, eyes blazing, wrestles with `}<span className="text-primary font-medium">JACK</span>{` on the polished floor, a SUPPRESSED HANDGUN jammed between Jack's teeth, forcing his head back to the window.
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 hover:text-primary transition-all" onClick={() => insertText('**', '**')} title="Bold">
+            <Bold className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 hover:text-primary transition-all" onClick={() => insertText('*', '*')} title="Italic">
+            <Italic className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 hover:text-primary transition-all" onClick={() => insertText('_', '_')} title="Underline">
+            <Underline className="h-4 w-4" />
+          </Button>
 
-Jack, bruised and exhausted, gags and mumbles broken vowels around the metal, fingers clawing at Tyler's wrist as his VOICEOVER calmly dissects how a barrel in your mouth makes consonants impossible, how he can taste the drilled holes in the silencer.
+          <div className="h-6 w-px bg-border/50 mx-2" />
 
-                              `}<span className="text-primary font-semibold">TYLER</span>{`
-              We won't really die. We'll be immortal.
+          <div className="flex-1" />{/* Spacer */}
 
-He glances at his watch with manic conviction. Jack forces out a slurred reply past the gun.
+          <div className="flex items-center gap-4 px-4">
+            {isSaving && (
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-ping" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Autosaving</span>
+              </div>
+            )}
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">{storyInput.length} Characters</span>
+          </div>
+        </div>
 
-                              `}<span className="text-primary font-semibold">JACK</span>{`
-              You're thinking of vampires.
-
-Tyler shoves him harder into the glass, twisting Jack's head so he's staring straight down the sheer drop. They lunge, SLAM into a table, sending it crashing, the gun skittering away as Jack's VOICEOVER drifts into clinical instructions on nitroglycerin and the building's demolition layout.
-
-Both men dive; Tyler snatches the gun first, drags Jack back to the window, barrel back in his mouth, hissing in his ear.
-
-                              `}<span className="text-primary font-semibold">TYLER</span>{`
-              This is our world now. Two minutes.
-
-                                                         CUT TO:
-
-`}<span className="text-primary font-semibold">2</span> <span className="text-primary font-bold">INT. HIGH SCHOOL GYMNASIUM – NIGHT</span>{`
-
-Fluorescent gloom washes a cavernous gym, air thick with sour sweat and disinfectant. Folding chairs form loose circles beneath a hand-lettered banner: "REMAINING MEN TOGETHER." Clusters of MEN cling to each other, weeping, murmuring about surgeries and lost futures.
-
-`}<span className="text-primary font-medium">JACK</span>{`'s face is mashed into the vast, sweaty chest of `}<span className="text-primary font-medium">BOB</span>{`, whose massive arms enfold him in a crushing embrace.`}
-          </pre>
+        {/* Text Area */}
+        <div className="flex-1 overflow-auto bg-card selection:bg-primary/30">
+          <Textarea
+            ref={textareaRef}
+            value={storyInput}
+            onChange={(e) => setStoryInput(e.target.value)}
+            className="h-full min-h-full w-full resize-none border-0 p-12 font-mono text-base leading-[1.8] focus-visible:ring-0 bg-transparent text-foreground/90 placeholder:text-muted-foreground/30"
+            placeholder="INT. STUDIO - DAY&#10;&#10;The blank page stares back. It's time to create..."
+            spellCheck={false}
+          />
         </div>
       </div>
     </div>

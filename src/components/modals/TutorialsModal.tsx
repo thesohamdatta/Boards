@@ -79,46 +79,50 @@ export function TutorialsModal({ open, onOpenChange }: TutorialsModalProps) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl max-h-[80vh]">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <BookOpen className="h-5 w-5" />
-                        Tutorials & Help
-                    </DialogTitle>
-                    <DialogDescription>
-                        Learn how to use Storyboarder.ai effectively
-                    </DialogDescription>
+            <DialogContent className="max-w-3xl bg-card border-border/50 shadow-3 rounded-[var(--radius-xl)] p-0 overflow-hidden">
+                <DialogHeader className="p-8 pb-6 border-b border-border/20">
+                    <div className="space-y-1">
+                        <DialogTitle className="text-2xl font-black tracking-tight text-foreground uppercase flex items-center gap-3">
+                            <BookOpen className="h-6 w-6 text-primary" />
+                            Field Manual & Training
+                        </DialogTitle>
+                        <DialogDescription className="text-xs font-bold uppercase tracking-widest text-primary/80">
+                            Optimize your Storytelling Workflow
+                        </DialogDescription>
+                    </div>
                 </DialogHeader>
 
                 <Tabs defaultValue="tutorials" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="tutorials">
-                            <Film className="h-4 w-4 mr-2" />
-                            Tutorials
-                        </TabsTrigger>
-                        <TabsTrigger value="shortcuts">
-                            <Keyboard className="h-4 w-4 mr-2" />
-                            Keyboard Shortcuts
-                        </TabsTrigger>
-                    </TabsList>
+                    <div className="px-8 pt-4">
+                        <TabsList className="flex w-full bg-muted/30 p-1 rounded-xl border border-border/20">
+                            <TabsTrigger value="tutorials" className="flex-1 rounded-lg text-xs font-bold uppercase tracking-widest py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg">
+                                <Film className="h-4 w-4 mr-2" />
+                                Procedures
+                            </TabsTrigger>
+                            <TabsTrigger value="shortcuts" className="flex-1 rounded-lg text-xs font-bold uppercase tracking-widest py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg">
+                                <Keyboard className="h-4 w-4 mr-2" />
+                                Hotkeys
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
 
-                    <TabsContent value="tutorials">
-                        <ScrollArea className="h-[500px] pr-4">
-                            <div className="space-y-6">
+                    <div className="px-8 py-8 h-[60vh] overflow-y-auto custom-scrollbar">
+                        <TabsContent value="tutorials" className="space-y-10 mt-0">
+                            <div className="space-y-10">
                                 {tutorials.map((category, idx) => (
-                                    <div key={idx} className="space-y-3">
-                                        <h3 className="font-semibold flex items-center gap-2">
-                                            <category.icon className="h-5 w-5 text-primary" />
+                                    <div key={idx} className="space-y-4">
+                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                                            <category.icon className="h-4 w-4" />
                                             {category.title}
                                         </h3>
-                                        <div className="space-y-2">
+                                        <div className="grid grid-cols-1 gap-3">
                                             {category.items.map((item, itemIdx) => (
                                                 <div
                                                     key={itemIdx}
-                                                    className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                                                    className="p-5 rounded-2xl border border-border/30 bg-muted/10 hover:bg-muted/30 hover:border-primary/30 transition-all cursor-pointer group"
                                                 >
-                                                    <h4 className="font-medium text-sm">{item.title}</h4>
-                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                    <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{item.title}</h4>
+                                                    <p className="text-xs text-muted-foreground mt-1 font-medium leading-relaxed">
                                                         {item.description}
                                                     </p>
                                                 </div>
@@ -127,40 +131,44 @@ export function TutorialsModal({ open, onOpenChange }: TutorialsModalProps) {
                                     </div>
                                 ))}
 
-                                <div className="mt-8 p-4 rounded-lg bg-primary/10 border border-primary/20">
-                                    <h3 className="font-semibold flex items-center gap-2 mb-2">
-                                        <Lightbulb className="h-5 w-5 text-primary" />
-                                        Quick Tips
+                                <div className="p-6 rounded-3xl bg-primary/5 border border-primary/20 space-y-4">
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                        <Lightbulb className="h-4 w-4" />
+                                        Advanced Directives
                                     </h3>
-                                    <ul className="space-y-2 text-sm text-muted-foreground">
-                                        <li>• Use the AI script breakdown to quickly generate scenes from your screenplay</li>
-                                        <li>• Save time by duplicating similar shots and modifying them</li>
-                                        <li>• Export your storyboard as PDF or image sequence for presentations</li>
-                                        <li>• Use keyboard shortcuts to speed up your workflow</li>
-                                        <li>• Enable auto-save in settings to never lose your work</li>
-                                    </ul>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {[
+                                            'Leverage Semantic Analysis for automated shot sequencing',
+                                            'Maintain character consistency via Visual Reference anchoring',
+                                            'Execute multi-format exports for diverse production pipelines',
+                                            'Incorporate rapid key-commands for real-time visualization'
+                                        ].map((tip, i) => (
+                                            <div key={i} className="flex items-start gap-3">
+                                                <div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 shadow-[0_0_8px_rgba(var(--primary),0.8)]" />
+                                                <p className="text-xs font-medium text-muted-foreground/80">{tip}</p>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                        </ScrollArea>
-                    </TabsContent>
+                        </TabsContent>
 
-                    <TabsContent value="shortcuts">
-                        <ScrollArea className="h-[500px] pr-4">
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold">General</h3>
-                                    <div className="space-y-2">
+                        <TabsContent value="shortcuts" className="space-y-8 mt-0">
+                            <div className="grid grid-cols-1 gap-10">
+                                <div className="space-y-6">
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">System Ops</h3>
+                                    <div className="grid gap-3">
                                         {shortcuts.slice(0, 5).map((shortcut, idx) => (
                                             <div
                                                 key={idx}
-                                                className="flex items-center justify-between p-2 rounded-lg border"
+                                                className="flex items-center justify-between p-4 rounded-xl border border-border/30 bg-muted/5 group hover:bg-muted/10 transition-colors"
                                             >
-                                                <span className="text-sm">{shortcut.action}</span>
-                                                <div className="flex gap-1">
+                                                <span className="text-xs font-bold text-foreground/70 uppercase tracking-widest group-hover:text-foreground transition-colors">{shortcut.action}</span>
+                                                <div className="flex gap-1.5">
                                                     {shortcut.keys.map((key, keyIdx) => (
                                                         <kbd
                                                             key={keyIdx}
-                                                            className="px-2 py-1 text-xs font-mono bg-muted rounded border"
+                                                            className="px-2.5 py-1 text-[10px] font-black font-mono bg-background border border-border/50 rounded-lg shadow-sm text-primary"
                                                         >
                                                             {key}
                                                         </kbd>
@@ -171,20 +179,20 @@ export function TutorialsModal({ open, onOpenChange }: TutorialsModalProps) {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold">Navigation</h3>
-                                    <div className="space-y-2">
+                                <div className="space-y-6">
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Navigation & Playback</h3>
+                                    <div className="grid gap-3">
                                         {shortcuts.slice(5, 9).map((shortcut, idx) => (
                                             <div
                                                 key={idx}
-                                                className="flex items-center justify-between p-2 rounded-lg border"
+                                                className="flex items-center justify-between p-4 rounded-xl border border-border/30 bg-muted/5 group hover:bg-muted/10 transition-colors"
                                             >
-                                                <span className="text-sm">{shortcut.action}</span>
-                                                <div className="flex gap-1">
+                                                <span className="text-xs font-bold text-foreground/70 uppercase tracking-widest group-hover:text-foreground transition-colors">{shortcut.action}</span>
+                                                <div className="flex gap-1.5">
                                                     {shortcut.keys.map((key, keyIdx) => (
                                                         <kbd
                                                             key={keyIdx}
-                                                            className="px-2 py-1 text-xs font-mono bg-muted rounded border"
+                                                            className="px-2.5 py-1 text-[10px] font-black font-mono bg-background border border-border/50 rounded-lg shadow-sm text-primary"
                                                         >
                                                             {key}
                                                         </kbd>
@@ -195,20 +203,20 @@ export function TutorialsModal({ open, onOpenChange }: TutorialsModalProps) {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold">Tools</h3>
-                                    <div className="space-y-2">
+                                <div className="space-y-6">
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Creative Arsenal</h3>
+                                    <div className="grid gap-3">
                                         {shortcuts.slice(9).map((shortcut, idx) => (
                                             <div
                                                 key={idx}
-                                                className="flex items-center justify-between p-2 rounded-lg border"
+                                                className="flex items-center justify-between p-4 rounded-xl border border-border/30 bg-muted/5 group hover:bg-muted/10 transition-colors"
                                             >
-                                                <span className="text-sm">{shortcut.action}</span>
-                                                <div className="flex gap-1">
+                                                <span className="text-xs font-bold text-foreground/70 uppercase tracking-widest group-hover:text-foreground transition-colors">{shortcut.action}</span>
+                                                <div className="flex gap-1.5">
                                                     {shortcut.keys.map((key, keyIdx) => (
                                                         <kbd
                                                             key={keyIdx}
-                                                            className="px-2 py-1 text-xs font-mono bg-muted rounded border"
+                                                            className="px-2.5 py-1 text-[10px] font-black font-mono bg-background border border-border/50 rounded-lg shadow-sm text-primary"
                                                         >
                                                             {key}
                                                         </kbd>
@@ -219,8 +227,8 @@ export function TutorialsModal({ open, onOpenChange }: TutorialsModalProps) {
                                     </div>
                                 </div>
                             </div>
-                        </ScrollArea>
-                    </TabsContent>
+                        </TabsContent>
+                    </div>
                 </Tabs>
             </DialogContent>
         </Dialog>

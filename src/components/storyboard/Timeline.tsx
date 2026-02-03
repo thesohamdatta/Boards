@@ -10,7 +10,8 @@ import {
     ZoomOut,
     Settings as SettingsIcon,
     Minimize2,
-    Maximize2
+    Maximize2,
+    Video
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -87,16 +88,16 @@ export const Timeline: React.FC = () => {
 
     return (
         <div className={cn(
-            "w-full z-40 bg-[#1a1a1a] border-t border-gray-800 shadow-xl transition-all duration-300 ease-in-out flex flex-col",
-            settings.compactMode ? "h-32" : "h-48"
+            "w-full z-40 bg-background/50 border-t border-border/50 backdrop-blur-xl shadow-2xl transition-all duration-300 ease-in-out flex flex-col",
+            settings.compactMode ? "h-36" : "h-52"
         )}>
-            {/* Controls Bar */}
-            <div className="h-10 border-b border-gray-800 flex items-center justify-between px-4 bg-[#111111]">
+            {/* Controls Bar - MD3 Surface Header */}
+            <div className="h-12 border-b border-border/30 flex items-center justify-between px-6 bg-background/30 backdrop-blur-md">
                 <div className="flex items-center gap-2">
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-white"
+                        className="h-9 w-9 text-muted-foreground hover:bg-muted"
                         onClick={() => setCurrentTime(0)}
                     >
                         <SkipBack className="w-4 h-4" />
@@ -105,76 +106,80 @@ export const Timeline: React.FC = () => {
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-white hover:bg-white/10"
+                        className="h-10 w-10 text-primary-foreground bg-primary shadow-lg shadow-primary/20 hover:scale-105 transition-all rounded-full"
                         onClick={() => setIsPlaying(!isPlaying)}
                     >
-                        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
                     </Button>
 
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-white"
+                        className="h-9 w-9 text-muted-foreground hover:bg-muted"
                         onClick={() => setCurrentTime(totalDuration)}
                     >
                         <SkipForward className="w-4 h-4" />
                     </Button>
 
-                    <span className="text-xs font-mono text-purple-400 ml-2">
-                        {currentTime.toFixed(1)}s / {totalDuration.toFixed(1)}s
-                    </span>
+                    <div className="ml-4 px-3 py-1 rounded-full bg-muted/50 border border-border/50">
+                        <span className="text-[10px] font-black font-mono tracking-widest text-primary">
+                            {currentTime.toFixed(1)}S <span className="text-muted-foreground mx-1">/</span> {totalDuration.toFixed(1)}S
+                        </span>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 w-32">
-                        <ZoomOut className="w-3 h-3 text-gray-500" />
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-3">
+                        <ZoomOut className="w-3.5 h-3.5 text-muted-foreground/50" />
                         <Slider
                             value={[zoomLevel]}
                             min={0.5}
                             max={3}
                             step={0.1}
                             onValueChange={([val]) => setZoomLevel(val)}
-                            className="w-20"
+                            className="w-32"
                         />
-                        <ZoomIn className="w-3 h-3 text-gray-500" />
+                        <ZoomIn className="w-3.5 h-3.5 text-muted-foreground/50" />
                     </div>
 
-                    <div className="flex items-center gap-1 border-l border-gray-800 pl-4">
+                    <div className="flex items-center gap-2 border-l border-border/30 pl-6 px-1">
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-gray-400 hover:text-white"
+                            className="h-9 w-9 text-muted-foreground hover:bg-muted rounded-full"
                             onClick={() => updateSettings({ compactMode: !settings.compactMode })}
                             title={settings.compactMode ? "Expand Timeline" : "Compact Timeline"}
                         >
-                            {settings.compactMode ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
+                            {settings.compactMode ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
                         </Button>
 
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-gray-400 hover:text-white"
+                            className="h-9 w-9 text-muted-foreground hover:bg-muted rounded-full"
                             onClick={() => updateSettings({ showTimeline: false })}
                             title="Hide Timeline"
                         >
-                            <SettingsIcon className="w-3 h-3" />
+                            <SettingsIcon className="w-4 h-4" />
                         </Button>
                     </div>
                 </div>
             </div>
 
-            {/* Timeline Track */}
+            {/* Timeline Track - Cinematic Surface */}
             <div
-                className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar bg-[#0f0f0f] relative p-2"
+                className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar bg-background/20 relative p-4 flex items-center"
                 ref={scrollContainerRef}
             >
-                <div className="flex h-full gap-1" style={{ width: `${totalDuration * 50 * zoomLevel}px`, minWidth: '100%' }}>
+                <div className="flex h-32 gap-2 relative" style={{ width: `${totalDuration * 50 * zoomLevel}px`, minWidth: '100%' }}>
                     {shots.map((shot, index) => (
                         <div
                             key={shot.id}
                             className={cn(
-                                "h-full relative group cursor-pointer border border-gray-800 rounded overflow-hidden select-none transition-all hover:border-gray-600",
-                                selectedShotId === shot.id ? "border-purple-500 ring-1 ring-purple-500 bg-purple-900/10" : "bg-[#1a1a1a]"
+                                "h-full relative group cursor-pointer border rounded-2xl overflow-hidden select-none transition-all duration-300",
+                                selectedShotId === shot.id
+                                    ? "border-primary ring-2 ring-primary/20 bg-primary/10 shadow-xl shadow-primary/10 z-10"
+                                    : "border-border/30 bg-muted/20 hover:border-primary/50"
                             )}
                             style={{
                                 flex: `0 0 ${shot.duration * 50 * zoomLevel}px`,
@@ -182,32 +187,47 @@ export const Timeline: React.FC = () => {
                             }}
                             onClick={() => setSelectedShotId(shot.id)}
                         >
-                            <div className="absolute top-1 left-2 text-[10px] text-gray-500 font-mono z-10 bg-black/50 px-1 rounded">
-                                {index + 1}
+                            {/* Metadata Overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 z-10 opacity-60 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-between">
+                                <div className="flex justify-between items-start">
+                                    <span className="text-[9px] font-black text-white/80 bg-black/40 px-1.5 py-0.5 rounded-md backdrop-blur-sm tracking-widest uppercase">
+                                        P{index + 1}
+                                    </span>
+                                    {selectedShotId === shot.id && (
+                                        <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_primary]" />
+                                    )}
+                                </div>
+                                <span className="text-[9px] font-bold text-white/50 group-hover:text-white transition-colors tracking-tighter uppercase px-1">
+                                    {shot.shotSize} · {shot.duration}S
+                                </span>
                             </div>
 
                             {shot.imageUrl ? (
                                 <img
                                     src={shot.imageUrl}
                                     alt={`Shot ${shot.shotNumber}`}
-                                    className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity"
+                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                     draggable={false}
                                 />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-700 text-xs">
-                                    {shot.shotSize}
+                                <div className="w-full h-full flex flex-col items-center justify-center bg-muted/20">
+                                    <Video className="w-6 h-6 text-muted-foreground/30 mb-2" />
+                                    <span className="text-[10px] text-muted-foreground/50 tracking-widest font-bold uppercase">{shot.shotSize}</span>
                                 </div>
                             )}
 
-                            <div className="absolute bottom-0 inset-x-0 h-4 bg-gradient-to-t from-black/80 to-transparent flex items-end px-2 pb-1">
-                                <span className="text-[10px] text-gray-400">{shot.duration}s</span>
-                            </div>
+                            {/* Selection Glow Bar */}
+                            {selectedShotId === shot.id && (
+                                <div className="absolute inset-x-0 bottom-0 h-1 bg-primary shadow-[0_-2px_8px_primary]" />
+                            )}
                         </div>
                     ))}
 
                     {shots.length === 0 && (
-                        <div className="w-full h-full flex items-center justify-center text-gray-600 text-sm">
-                            Your timeline is empty. Add shots above to visualize story flow.
+                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/50 text-xs font-bold tracking-widest uppercase gap-3">
+                            <SkipBack className="w-4 h-4 opacity-30" />
+                            Awaiting Cinematic Data
+                            <SkipForward className="w-4 h-4 opacity-30" />
                         </div>
                     )}
                 </div>
