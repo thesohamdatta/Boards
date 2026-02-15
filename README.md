@@ -12,7 +12,10 @@
 [Features](#features) • [Installation](#installation) • [Usage](#usage) • [Documentation](#documentation) • [Contributing](#contributing)
 
 </div>
+<div align="center">
+   <img width="487" height="718" alt="Screenshot 2026-01-26 001656" src="https://github.com/user-attachments/assets/a63f3208-57de-4562-a006-234a1b84d062" />
 
+</div>
 ---
 
 ## 📖 Overview
